@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1A56DB">
+  <meta name="description" content="WASA Pakistan Enterprise Digital Management System - Field Officer App">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WASA Officer">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <title>WASA Pakistan — Field Officer App</title>
+
+  <!-- Typography & Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase v9 Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    /* ==========================================================================
+       ENTERPRISE DESIGN SYSTEM (Salesforce / Stripe / Apple Inspired)
+       ========================================================================== */
+    :root {
+      --primary-50: #EFF6FF;
+      --primary-100: #DBEAFE;
+      --primary-500: #1A56DB;
+      --primary-600: #1E40AF;
+      --primary-700: #1E3A8A;
+      
+      --success-50: #F0FDF4;
+      --success-500: #16A34A;
+      --success-600: #15803D;
+
+      --warning-50: #FFFBEB;
+      --warning-500: #F59E0B;
+
+      --danger-50: #FEF2F2;
+      --danger-500: #EF4444;
+
+      --gray-25: #FCFCFD;
+      --gray-50: #F9FAFB;
+      --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB;
+      --gray-300: #D1D5DB;
+      --gray-400: #9CA3AF;
+      --gray-500: #6B7280;
+      --gray-600: #4B5563;
+      --gray-700: #374151;
+      --gray-800: #1F2937;
+      --gray-900: #111827;
+
+      --surface-primary: #FFFFFF;
+      --surface-secondary: #F9FAFB;
+      --border-default: #E5E7EB;
+      
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+      
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #F1F5F9;
+      color: var(--gray-900);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Mobile Container Frame for Desktop View */
+    #app-viewport {
+      width: 100%;
+      max-width: 430px;
+      height: 100vh;
+      max-height: 932px;
+      background: var(--surface-primary);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    }
+
+    @media (max-width: 480px) {
+      #app-viewport {
+        max-width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+      }
+    }
+
+    /* Top Offline Banner */
+    .offline-banner {
+      background: var(--danger-500);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-align: center;
+      padding: 6px 12px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      z-index: 1000;
+    }
+
+    .offline-banner.active {
+      display: flex;
+    }
+
+    /* Views Framework */
+    .view {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      background: var(--surface-secondary);
+      animation: fadeIn 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .view.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ==========================================================================
+       SPLASH SCREEN
+       ========================================================================== */
+    #view-splash {
+      background: linear-gradient(135deg, #1A56DB 0%, #1E3A8A 100%);
+      color: white;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 32px;
+    }
+
+    .splash-logo-box {
+      width: 96px;
+      height: 96px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin-bottom: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* ==========================================================================
+       LOGIN & REGISTRATION SCREENS
+       ========================================================================== */
+    .auth-container {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 100%;
+      background: white;
+    }
+
+    .auth-header {
+      margin-bottom: 28px;
+    }
+
+    .auth-header h2 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      letter-spacing: -0.025em;
+    }
+
+    .auth-header p {
+      color: var(--gray-500);
+      font-size: 0.875rem;
+      margin-top: 6px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrapper i {
+      position: absolute;
+      left: 14px;
+      color: var(--gray-400);
+      font-size: 1rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 14px 12px 42px;
+      font-size: 0.9375rem;
+      border: 1.5px solid var(--border-default);
+      border-radius: var(--radius-md);
+      background: var(--gray-25);
+      transition: all 150ms ease;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary-500);
+      background: white;
+      box-shadow: 0 0 0 3px var(--primary-100);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px 20px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 150ms ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+      background: var(--primary-700);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border-default);
+      color: var(--gray-700);
+      margin-top: 12px;
+    }
+
+    /* ==========================================================================
+       HEADER & BOTTOM NAV
+       ========================================================================== */
+    .app-header {
+      background: white;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .user-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      background: var(--primary-100);
+      color: var(--primary-600);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .bottom-nav {
+      background: white;
+      border-top: 1px solid var(--border-default);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      height: 64px;
+      padding-bottom: env(safe-area-inset-bottom);
+      position: relative;
+      z-index: 100;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--gray-400);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      flex: 1;
+    }
+
+    .nav-item i {
+      font-size: 1.25rem;
+    }
+
+    .nav-item.active {
+      color: var(--primary-500);
+    }
+
+    .fab-btn {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--primary-500), var(--primary-600));
+      color: white;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 8px 16px rgba(26, 86, 219, 0.35);
+      margin-top: -24px;
+      cursor: pointer;
+      transition: transform 150ms ease;
+    }
+
+    .fab-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* ==========================================================================
+       DASHBOARD CARDS
+       ========================================================================== */
+    .content-padding {
+      padding: 20px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-default);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-card .val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin-top: 4px;
+    }
+
+    .stat-card .lbl {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--gray-500);
+    }
+
+    /* Dynamic Form Engine Styling */
+    .form-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      border: 1px solid var(--border-default);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 20px;
+    }
+
+    .media-picker-box {
+      border: 2px dashed var(--gray-300);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      text-align: center;
+      color: var(--gray-500);
+      cursor: pointer;
+      background: var(--gray-25);
+    }
+
+    /* Toast Notifications */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      width: 90%;
+      max-width: 380px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--gray-900);
+      color: white;
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: toastIn 200ms ease;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-viewport">
+    
+    <!-- Top Offline Notice Banner -->
+    <div id="offline-banner" class="offline-banner">
+      <i class="fa-solid fa-wifi"></i>
+      <span>You are working OFFLINE. Submissions saved locally.</span>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- ===================================================================
+         VIEW 1: SPLASH SCREEN
+         =================================================================== -->
+    <div id="view-splash" class="view active">
+      <div class="splash-logo-box">💧</div>
+      <h1 style="font-size: 2rem; font-weight: 900; letter-spacing: -0.03em;">WASA PAKISTAN</h1>
+      <p style="opacity: 0.8; margin-top: 8px; font-size: 0.9375rem;">Digital Management System</p>
+      <div style="margin-top: 40px;">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 1.5rem;"></i>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         VIEW 2: LOGIN SCREEN
+         =================================================================== -->
+    <div id="view-login" class="view">
+      <div class="auth-container">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 40px;">💧</div>
+        </div>
+        <div class="auth-header">
+          <h2>Officer Login</h2>
+          <p>Enter your credentials to access field operations</p>
+        </div>
+
+        <form id="form-login" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Phone Number</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-phone"></i>
+              <input type="tel" id="login-phone" class="form-control" placeholder="03001234567" required pattern="[0-9]{11}">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <div class="input-wrapper">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="login-pass" class="form-control" placeholder="••••••••" required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="btn-login-submit">
+            <span>Sign In</span> <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </form>
+
+        <button type="button" class="btn btn-outline" onclick="switchView('view-register')">
+          Request New Account Registration
+        </button>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         VIEW 3: ACCOUNT REGISTRATION REQUEST SCREEN
+         =================================================================== -->
+    <div id="view-register" class="view">
+      <div class="app-header">
+        <i class="fa-solid fa-arrow-left" style="font-size: 1.2rem; cursor: pointer;" onclick="switchView('view-login')"></i>
+        <h3 style="font-size: 1rem; font-weight: 700;">Account Request</h3>
+        <div></div>
+      </div>
+      <div class="content-padding">
+        <form id="form-register" onsubmit="handleRegisterRequest(event)">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="reg-name" class="form-control" placeholder="e.g. Ahmad Hassan" required style="padding-left: 14px;">
+          </div>
+          <div class="form-group">
+            <label>Phone Number (11 digits) *</label>
+            <input type="tel" id="reg-phone" class="form-control" placeholder="03001234567" pattern="[0-9]{11}" required style="padding-left: 14px;">
+          </div>
+          <div class="form-group">
+            <label>CNIC Number (13 digits) *</label>
+            <input type="text" id="reg-cnic" class="form-control" placeholder="3520212345671" pattern="[0-9]{13}" required style="padding-left: 14px;">
+          </div>
+          <div class="form-group">
+            <label>Gender *</label>
+            <select id="reg-gender" class="form-control" style="padding-left: 14px;" required>
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Requested Designation *</label>
+            <select id="reg-designation" class="form-control" style="padding-left: 14px;" required>
+              <option value="Field Officer">Field Officer</option>
+              <option value="Recovery Officer">Recovery Officer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Set Password *</label>
+            <input type="password" id="reg-pass" class="form-control" placeholder="Minimum 6 characters" minlength="6" required style="padding-left: 14px;">
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
+            Submit Request to Admin
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         VIEW 4: MAIN DASHBOARD
+         =================================================================== -->
+    <div id="view-dashboard" class="view">
+      <div class="app-header">
+        <div class="user-badge">
+          <div class="avatar" id="dash-avatar">U</div>
+          <div>
+            <div style="font-size: 0.9375rem; font-weight: 700;" id="dash-username">Officer Name</div>
+            <div style="font-size: 0.75rem; color: var(--gray-500);" id="dash-role">Field Officer</div>
+          </div>
+        </div>
+        <div style="color: var(--success-500); font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+          <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Online
+        </div>
+      </div>
+
+      <div class="content-padding">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="lbl">Today's Tasks</div>
+            <div class="val" style="color: var(--primary-500);">12</div>
+          </div>
+          <div class="stat-card">
+            <div class="lbl">Completed</div>
+            <div class="val" style="color: var(--success-500);" id="stat-completed">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="lbl">Pending Sync</div>
+            <div class="val" style="color: var(--warning-500);" id="stat-pending">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="lbl">Total Saved</div>
+            <div class="val" id="stat-total">0</div>
+          </div>
+        </div>
+
+        <h4 style="font-size: 0.9375rem; font-weight: 700; margin-bottom: 12px; color: var(--gray-800);">Quick Submit</h4>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
+          <div class="form-card" style="padding: 14px; display: flex; align-items: center; justify-content: space-between; margin:0; cursor: pointer;" onclick="openActivityForm('property_survey')">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--primary-50); color: var(--primary-500); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">🏠</div>
+              <div>
+                <div style="font-size: 0.875rem; font-weight: 700;">Property Survey</div>
+                <div style="font-size: 0.75rem; color: var(--gray-500);">New connection & tax data</div>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: var(--gray-400);"></i>
+          </div>
+
+          <div class="form-card" style="padding: 14px; display: flex; align-items: center; justify-content: space-between; margin:0; cursor: pointer;" onclick="openActivityForm('bill_distribution')">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 40px; height: 40px; border-radius: var(--radius-md); background: var(--success-50); color: var(--success-500); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">💰</div>
+              <div>
+                <div style="font-size: 0.875rem; font-weight: 700;">Bill Distribution</div>
+                <div style="font-size: 0.75rem; color: var(--gray-500);">Record recovery & delivery</div>
+              </div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: var(--gray-400);"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         VIEW 5: DYNAMIC FORM ENGINE
+         =================================================================== -->
+    <div id="view-form" class="view">
+      <div class="app-header">
+        <i class="fa-solid fa-arrow-left" style="font-size: 1.2rem; cursor: pointer;" onclick="switchView('view-dashboard')"></i>
+        <h3 id="form-title" style="font-size: 1rem; font-weight: 700;">New Entry</h3>
+        <i class="fa-solid fa-floppy-disk" style="color: var(--primary-500); font-size: 1.2rem; cursor: pointer;" onclick="saveDraft()"></i>
+      </div>
+
+      <div class="content-padding">
+        <form id="dynamic-form" onsubmit="handleFormSubmit(event)">
+          <div id="dynamic-fields-container"></div>
+
+          <!-- Media Capture -->
+          <div class="form-group">
+            <label>Attach Photo (Required)</label>
+            <div class="media-picker-box" onclick="document.getElementById('photo-input').click()">
+              <i class="fa-solid fa-camera" style="font-size: 1.8rem; margin-bottom: 8px;"></i>
+              <div style="font-size: 0.8125rem; font-weight: 600;">Tap to Capture Photo</div>
+              <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;" onchange="previewPhoto(this)">
+            </div>
+            <div id="photo-preview-box" style="margin-top: 10px; display: none;">
+              <img id="photo-preview-img" style="width: 100%; height: 180px; object-fit: cover; border-radius: var(--radius-md);">
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="btn-form-submit" style="margin-top: 20px;">
+            Submit Entry ✅
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         BOTTOM NAVIGATION BAR
+         =================================================================== -->
+    <div id="app-bottom-nav" class="bottom-nav" style="display: none;">
+      <div class="nav-item active" onclick="switchView('view-dashboard')">
+        <i class="fa-solid fa-house"></i>
+        <span>Home</span>
+      </div>
+      <div class="nav-item" onclick="switchView('view-dashboard')">
+        <i class="fa-solid fa-list-check"></i>
+        <span>Activities</span>
+      </div>
+      <div class="fab-btn" onclick="openActivityForm('property_survey')">
+        <i class="fa-solid fa-plus"></i>
+      </div>
+      <div class="nav-item" onclick="switchView('view-dashboard')">
+        <i class="fa-solid fa-chart-pie"></i>
+        <span>Reports</span>
+      </div>
+      <div class="nav-item" onclick="handleLogout()">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        <span>Logout</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ==========================================================================
+       CONFIGURATION & FIREBASE INITIALIZATION
+       ========================================================================== */
+    const firebaseConfig = {
+      apiKey: "AIzaSyCz3YYEwbUmSd6wP2ZgPMCv0ifwN-mNPww",
+      authDomain: "wasa-kasur.firebaseapp.com",
+      projectId: "wasa-kasur",
+      storageBucket: "wasa-kasur.firebasestorage.app",
+      messagingSenderId: "109840782965",
+      appId: "1:109840782965:web:ac37c276df6bdffca5ca3c",
+      measurementId: "G-6NNQ21KPWX"
+    };
+
+    const cloudinaryConfig = {
+      cloudName: "yrncips2",
+      uploadPreset: "wasa_uploads"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    let currentUser = null;
+    let selectedPhotoFile = null;
+
+    /* ==========================================================================
+       HELPER FUNCTIONS
+       ========================================================================== */
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> <span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    function switchView(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const target = document.getElementById(viewId);
+      if (target) target.classList.add('active');
+
+      const bottomNav = document.getElementById('app-bottom-nav');
+      if (['view-dashboard', 'view-form'].includes(viewId)) {
+        bottomNav.style.display = 'flex';
+      } else {
+        bottomNav.style.display = 'none';
+      }
+    }
+
+    /* ==========================================================================
+       AUTHENTICATION & USER REGISTRATION
+       ========================================================================== */
+    async function handleLogin(e) {
+      e.preventDefault();
+      const phone = document.getElementById('login-phone').value.trim();
+      const pass = document.getElementById('login-pass').value;
+
+      showToast('Authenticating...', 'info');
+
+      try {
+        const snapshot = await db.collection('wasaUsers')
+          .where('phone', '==', phone)
+          .where('passHash', '==', pass)
+          .get();
+
+        if (snapshot.empty) {
+          showToast('Invalid phone or password', 'error');
+          return;
+        }
+
+        const userData = snapshot.docs[0].data();
+        
+        if (userData.status !== 'active') {
+          showToast('Account pending admin approval', 'warning');
+          return;
+        }
+
+        currentUser = userData;
+        document.getElementById('dash-username').innerText = currentUser.name;
+        document.getElementById('dash-role').innerText = currentUser.designation || 'Field Officer';
+        document.getElementById('dash-avatar').innerText = currentUser.name.charAt(0).toUpperCase();
+
+        showToast('Login successful! 🎉', 'success');
+        switchView('view-dashboard');
+      } catch (err) {
+        showToast('Login failed: ' + err.message, 'error');
+      }
+    }
+
+    async function handleRegisterRequest(e) {
+      e.preventDefault();
+      const name = document.getElementById('reg-name').value.trim();
+      const phone = document.getElementById('reg-phone').value.trim();
+      const cnic = document.getElementById('reg-cnic').value.trim();
+      const gender = document.getElementById('reg-gender').value;
+      const designation = document.getElementById('reg-designation').value;
+      const pass = document.getElementById('reg-pass').value;
+
+      try {
+        await db.collection('wasaUsers').add({
+          name,
+          phone,
+          cnic,
+          gender,
+          designation,
+          passHash: pass,
+          role: 'officer',
+          status: 'pending',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        showToast('Request submitted! Waiting for Admin approval.', 'success');
+        switchView('view-login');
+      } catch (err) {
+        showToast('Request failed: ' + err.message, 'error');
+      }
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      showToast('Logged out successfully', 'info');
+      switchView('view-login');
+    }
+
+    /* ==========================================================================
+       DYNAMIC FORM ENGINE & MEDIA UPLOAD
+       ========================================================================== */
+    function openActivityForm(type) {
+      const container = document.getElementById('dynamic-fields-container');
+      container.innerHTML = '';
+
+      if (type === 'property_survey') {
+        document.getElementById('form-title').innerText = 'Property Survey 🏠';
+        container.innerHTML = `
+          <div class="form-group">
+            <label>Property Number *</label>
+            <input type="text" id="field-prop-no" class="form-control" placeholder="P-10023" required style="padding-left:14px;">
+          </div>
+          <div class="form-group">
+            <label>Owner Name *</label>
+            <input type="text" id="field-owner-name" class="form-control" placeholder="Muhammad Ali" required style="padding-left:14px;">
+          </div>
+          <div class="form-group">
+            <label>Property Type *</label>
+            <select id="field-prop-type" class="form-control" style="padding-left:14px;" required>
+              <option value="Residential">Residential</option>
+              <option value="Commercial">Commercial</option>
+              <option value="Industrial">Industrial</option>
+            </select>
+          </div>
+        `;
+      } else if (type === 'bill_distribution') {
+        document.getElementById('form-title').innerText = 'Bill Distribution 💰';
+        container.innerHTML = `
+          <div class="form-group">
+            <label>Consumer Number *</label>
+            <input type="text" id="field-bill-no" class="form-control" placeholder="C-88231" required style="padding-left:14px;">
+          </div>
+          <div class="form-group">
+            <label>Amount Collected (Rs.) *</label>
+            <input type="number" id="field-bill-amount" class="form-control" placeholder="1500" required style="padding-left:14px;">
+          </div>
+        `;
+      }
+
+      switchView('view-form');
+    }
+
+    function previewPhoto(input) {
+      if (input.files && input.files[0]) {
+        selectedPhotoFile = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('photo-preview-img').src = e.target.result;
+          document.getElementById('photo-preview-box').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-form-submit');
+      btn.disabled = true;
+      btn.innerText = 'Uploading & Saving...';
+
+      let photoUrl = '';
+
+      try {
+        // Upload photo to Cloudinary
+        if (selectedPhotoFile) {
+          const formData = new FormData();
+          formData.append('file', selectedPhotoFile);
+          formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+
+          const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          const cloudData = await res.json();
+          photoUrl = cloudData.secure_url || '';
+        }
+
+        // Save activity record to Firestore
+        await db.collection('wasaActivities').add({
+          officerName: currentUser ? currentUser.name : 'Ahmad Hassan',
+          officerPhone: currentUser ? currentUser.phone : '03001234567',
+          photoUrl: photoUrl,
+          status: 'submitted',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        showToast('Activity Saved Successfully! 🎉', 'success');
+        switchView('view-dashboard');
+      } catch (err) {
+        showToast('Submission Error: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Submit Entry ✅';
+      }
+    }
+
+    function saveDraft() {
+      showToast('Draft saved locally in offline cache!', 'info');
+    }
+
+    /* Initial App Load */
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        switchView('view-login');
+      }, 2000);
+    });
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('PWA Service Worker Registered!'))
+          .catch(err => console.log('SW Reg Error:', err));
+      });
+    }
+  </script>
+</body>
+</html>

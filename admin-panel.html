@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0F172A">
+  <meta name="description" content="WASA Pakistan Enterprise Admin Panel">
+  <title>WASA Pakistan — Admin Panel</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --primary-50: #EFF6FF; --primary-100: #DBEAFE; --primary-500: #1A56DB;
+      --primary-600: #1E40AF; --primary-700: #1E3A8A; --primary-900: #0F172A;
+      --success-50: #F0FDF4; --success-500: #16A34A; --success-600: #15803D;
+      --warning-50: #FFFBEB; --warning-500: #F59E0B;
+      --danger-50: #FEF2F2; --danger-500: #EF4444; --danger-600: #DC2626;
+      --gray-25: #FCFCFD; --gray-50: #F9FAFB; --gray-100: #F3F4F6;
+      --gray-200: #E5E7EB; --gray-300: #D1D5DB; --gray-400: #9CA3AF;
+      --gray-500: #6B7280; --gray-600: #4B5563; --gray-700: #374151;
+      --gray-800: #1F2937; --gray-900: #111827;
+      --sidebar-bg: #0F172A; --sidebar-hover: #1E293B; --sidebar-active: #1A56DB;
+      --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-full: 9999px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1); --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1); --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
+    body { background: #F1F5F9; color: var(--gray-900); min-height: 100vh; }
+
+    /* LOGIN SCREEN */
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #1A56DB 100%);
+      padding: 24px;
+    }
+    .login-card {
+      background: white; border-radius: 20px; padding: 40px; width: 100%; max-width: 420px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
+    }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo .icon {
+      width: 72px; height: 72px; background: linear-gradient(135deg, #1A56DB, #1E40AF);
+      border-radius: 20px; display: inline-flex; align-items: center; justify-content: center;
+      font-size: 36px; color: white; margin-bottom: 12px; box-shadow: var(--shadow-lg);
+    }
+    .login-logo h1 { font-size: 1.5rem; font-weight: 800; color: var(--gray-900); }
+    .login-logo p { color: var(--gray-500); font-size: 0.875rem; margin-top: 4px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.8125rem; font-weight: 600; color: var(--gray-700); margin-bottom: 6px; }
+    .form-control {
+      width: 100%; padding: 12px 14px; font-size: 0.9375rem;
+      border: 1.5px solid var(--gray-200); border-radius: var(--radius-md);
+      background: var(--gray-25); transition: all 150ms ease;
+    }
+    .form-control:focus { outline: none; border-color: var(--primary-500); background: white; box-shadow: 0 0 0 3px var(--primary-100); }
+    
+    .btn {
+      width: 100%; padding: 14px 20px; font-size: 0.9375rem; font-weight: 600;
+      border-radius: var(--radius-md); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 150ms ease;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--primary-500), var(--primary-600)); color: white; }
+    .btn-primary:hover { background: linear-gradient(135deg, var(--primary-600), var(--primary-700)); }
+    .btn-success { background: var(--success-500); color: white; }
+    .btn-danger { background: var(--danger-500); color: white; }
+    .btn-outline { background: white; border: 1.5px solid var(--gray-200); color: var(--gray-700); }
+    .btn-sm { width: auto; padding: 8px 14px; font-size: 0.8125rem; }
+
+    /* MAIN APP SHELL */
+    #app-shell { display: none; min-height: 100vh; }
+    .layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 260px; background: var(--sidebar-bg); color: white;
+      display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-brand {
+      padding: 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-brand .logo-box {
+      width: 40px; height: 40px; background: var(--primary-500); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .sidebar-brand h2 { font-size: 1rem; font-weight: 800; }
+
+    .sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+    .nav-section-label { font-size: 0.6875rem; font-weight: 700; color: #64748B; text-transform: uppercase; padding: 8px 12px; margin-top: 8px; }
+    .nav-link {
+      display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius-md);
+      color: #94A3B8; font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; background: transparent; width: 100%; text-align: left;
+    }
+    .nav-link:hover { background: var(--sidebar-hover); color: white; }
+    .nav-link.active { background: rgba(26, 86, 219, 0.2); color: #60A5FA; border-left: 3px solid var(--primary-500); }
+
+    .sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px; }
+    .sidebar-footer .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-500); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+    .main-content { margin-left: 260px; flex: 1; display: flex; flex-direction: column; }
+    .top-header {
+      height: 64px; background: white; border-bottom: 1px solid var(--gray-200);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 50;
+    }
+    .page-title { font-size: 1.125rem; font-weight: 700; }
+
+    .content-area { padding: 28px; flex: 1; }
+
+    /* KPI CARDS */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .kpi-card { background: white; border-radius: var(--radius-lg); padding: 20px; border: 1px solid var(--gray-100); box-shadow: var(--shadow-sm); }
+    .kpi-card .kpi-label { font-size: 0.75rem; font-weight: 600; color: var(--gray-500); text-transform: uppercase; }
+    .kpi-card .kpi-value { font-size: 1.75rem; font-weight: 800; margin-top: 4px; }
+
+    .card { background: white; border-radius: var(--radius-lg); border: 1px solid var(--gray-100); box-shadow: var(--shadow-sm); overflow: hidden; margin-bottom: 24px; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
+    .card-header h3 { font-size: 0.9375rem; font-weight: 700; }
+    .card-body { padding: 20px; }
+
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { text-align: left; padding: 12px 16px; font-size: 0.6875rem; font-weight: 700; color: var(--gray-500); background: var(--gray-50); }
+    .data-table td { padding: 14px 16px; font-size: 0.875rem; border-bottom: 1px solid var(--gray-100); }
+
+    .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.6875rem; font-weight: 700; }
+    .badge-success { background: var(--success-50); color: var(--success-600); }
+    .badge-warning { background: var(--warning-50); color: #B45309; }
+    .badge-danger { background: var(--danger-50); color: var(--danger-600); }
+    .badge-info { background: var(--primary-50); color: var(--primary-600); }
+
+    .view-section { display: none; }
+    .view-section.active { display: block; }
+
+    #toast-box { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--gray-900); color: white; padding: 14px 18px; border-radius: var(--radius-md); font-size: 0.875rem; display: flex; align-items: center; gap: 10px; }
+    .toast.success { background: var(--success-600); }
+    .toast.error { background: var(--danger-600); }
+  </style>
+</head>
+<body>
+
+  <div id="toast-box"></div>
+
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="icon">💧</div>
+        <h1>WASA Admin Panel</h1>
+        <p>Enterprise Management Console</p>
+      </div>
+      <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="admin-phone" class="form-control" value="03001234567" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="admin-pass" class="form-control" value="admin123" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-admin-login">
+          <i class="fa-solid fa-right-to-bracket"></i> Sign In to Dashboard
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- APP SHELL -->
+  <div id="app-shell">
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="logo-box">💧</div>
+          <div><h2>WASA Admin</h2></div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <div class="nav-section-label">Overview</div>
+          <button class="nav-link active" onclick="showSection('dashboard')">
+            <i class="fa-solid fa-chart-line"></i> <span>Dashboard</span>
+          </button>
+          <div class="nav-section-label">People</div>
+          <button class="nav-link" onclick="showSection('pending')">
+            <i class="fa-solid fa-user-clock"></i> <span>Pending Requests</span>
+          </button>
+          <button class="nav-link" onclick="showSection('officers')">
+            <i class="fa-solid fa-users"></i> <span>All Officers</span>
+          </button>
+          <div class="nav-section-label">Activities</div>
+          <button class="nav-link" onclick="showSection('activities')">
+            <i class="fa-solid fa-clipboard-list"></i> <span>Field Entries</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="avatar" id="admin-avatar">A</div>
+          <div style="flex:1;">
+            <div style="font-size:0.8125rem;font-weight:600;" id="admin-name">Admin</div>
+          </div>
+          <button onclick="handleAdminLogout()" style="background:transparent;border:none;color:#94A3B8;cursor:pointer;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="top-header">
+          <div class="page-title" id="page-title">Dashboard</div>
+        </header>
+
+        <div class="content-area">
+          
+          <!-- DASHBOARD -->
+          <div id="sec-dashboard" class="view-section active">
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <div class="kpi-label">Total Activities</div>
+                <div class="kpi-value" id="kpi-activities">0</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Active Officers</div>
+                <div class="kpi-value" id="kpi-officers">0</div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Pending Requests</div>
+                <div class="kpi-value" id="kpi-pending" style="color:var(--warning-500);">0</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>🕒 Recent Submissions</h3>
+                <button class="btn btn-outline btn-sm" onclick="loadDashboard()">Refresh</button>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Officer</th><th>Status</th><th>Time</th></tr>
+                  </thead>
+                  <tbody id="recent-feed-body">
+                    <tr><td colspan="3" style="text-align:center;padding:20px;">No entries yet</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- PENDING REQUESTS -->
+          <div id="sec-pending" class="view-section">
+            <div class="card">
+              <div class="card-header">
+                <h3>⏳ Pending Officer Requests</h3>
+                <button class="btn btn-outline btn-sm" onclick="loadPendingRequests()">Refresh</button>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Name</th><th>Phone</th><th>Designation</th><th>Action</th></tr>
+                  </thead>
+                  <tbody id="pending-body">
+                    <tr><td colspan="4" style="text-align:center;padding:20px;">No pending requests</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- OFFICERS -->
+          <div id="sec-officers" class="view-section">
+            <div class="card">
+              <div class="card-header">
+                <h3>👥 Approved Officers</h3>
+                <button class="btn btn-outline btn-sm" onclick="exportExcel()">Export Excel</button>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Name</th><th>Phone</th><th>Role</th><th>Status</th></tr>
+                  </thead>
+                  <tbody id="officers-body">
+                    <tr><td colspan="4" style="text-align:center;padding:20px;">No officers found</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ACTIVITIES -->
+          <div id="sec-activities" class="view-section">
+            <div class="card">
+              <div class="card-header">
+                <h3>📋 Field Submissions</h3>
+                <button class="btn btn-outline btn-sm" onclick="loadActivities()">Refresh</button>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Officer</th><th>Photo</th><th>Status</th><th>Time</th></tr>
+                  </thead>
+                  <tbody id="activities-body">
+                    <tr><td colspan="4" style="text-align:center;padding:20px;">No submissions found</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCz3YYEwbUmSd6wP2ZgPMCv0ifwN-mNPww",
+      authDomain: "wasa-kasur.firebaseapp.com",
+      projectId: "wasa-kasur",
+      storageBucket: "wasa-kasur.firebasestorage.app",
+      messagingSenderId: "109840782965",
+      appId: "1:109840782965:web:ac37c276df6bdffca5ca3c",
+      measurementId: "G-6NNQ21KPWX"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    let currentAdmin = null;
+
+    function showToast(msg, type = 'info') {
+      const box = document.getElementById('toast-box');
+      const t = document.createElement('div');
+      t.className = 'toast ' + (type === 'success' ? 'success' : type === 'error' ? 'error' : '');
+      t.innerHTML = `<span>${msg}</span>`;
+      box.appendChild(t);
+      setTimeout(() => t.remove(), 4000);
+    }
+
+    function showSection(name) {
+      document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+
+      const sec = document.getElementById('sec-' + name);
+      if (sec) sec.classList.add('active');
+
+      document.getElementById('page-title').innerText = name.toUpperCase();
+
+      if (name === 'dashboard') loadDashboard();
+      if (name === 'pending') loadPendingRequests();
+      if (name === 'officers') loadOfficers();
+      if (name === 'activities') loadActivities();
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const phone = document.getElementById('admin-phone').value.trim();
+      const pass = document.getElementById('admin-pass').value.trim();
+
+      if (phone === '03001234567' && pass === 'admin123') {
+        currentAdmin = { name: 'Super Admin', phone };
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-shell').style.display = 'block';
+        showToast('Welcome, Admin! 🎉', 'success');
+        loadDashboard();
+      } else {
+        showToast('Invalid credentials! Use 03001234567 / admin123', 'error');
+      }
+    }
+
+    function handleAdminLogout() {
+      currentAdmin = null;
+      document.getElementById('app-shell').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+
+    async function loadDashboard() {
+      try {
+        const [actSnap, userSnap] = await Promise.all([
+          db.collection('wasaActivities').get(),
+          db.collection('wasaUsers').get()
+        ]);
+
+        const activities = actSnap.docs.map(d => d.data());
+        const users = userSnap.docs.map(d => d.data());
+
+        const activeOfficers = users.filter(u => u.status === 'active');
+        const pending = users.filter(u => u.status === 'pending');
+
+        document.getElementById('kpi-activities').innerText = activities.length;
+        document.getElementById('kpi-officers').innerText = activeOfficers.length;
+        document.getElementById('kpi-pending').innerText = pending.length;
+
+        const tbody = document.getElementById('recent-feed-body');
+        if (activities.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;">No entries yet</td></tr>';
+        } else {
+          tbody.innerHTML = activities.slice(0, 5).map(a => `
+            <tr>
+              <td><strong>${a.officerName || 'Officer'}</strong></td>
+              <td><span class="badge badge-success">${a.status || 'submitted'}</span></td>
+              <td>${a.timestamp ? new Date(a.timestamp.seconds * 1000).toLocaleTimeString() : 'Just now'}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    async function loadPendingRequests() {
+      try {
+        const snap = await db.collection('wasaUsers').where('status', '==', 'pending').get();
+        const tbody = document.getElementById('pending-body');
+
+        if (snap.empty) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;">No pending requests</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = snap.docs.map(doc => {
+          const u = doc.data();
+          return `
+            <tr>
+              <td><strong>${u.name || '-'}</strong></td>
+              <td>${u.phone || '-'}</td>
+              <td>${u.designation || '-'}</td>
+              <td>
+                <button class="btn btn-success btn-sm" onclick="approveUser('${doc.id}')">Approve ✅</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    async function approveUser(id) {
+      try {
+        await db.collection('wasaUsers').doc(id).update({ status: 'active' });
+        showToast('Officer Approved! They can now login. 🎉', 'success');
+        loadPendingRequests();
+        loadDashboard();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    async function loadOfficers() {
+      try {
+        const snap = await db.collection('wasaUsers').get();
+        const tbody = document.getElementById('officers-body');
+        
+        tbody.innerHTML = snap.docs.map(doc => {
+          const u = doc.data();
+          return `
+            <tr>
+              <td><strong>${u.name || '-'}</strong></td>
+              <td>${u.phone || '-'}</td>
+              <td><span class="badge badge-info">${u.designation || 'Officer'}</span></td>
+              <td><span class="badge ${u.status === 'active' ? 'badge-success' : 'badge-warning'}">${u.status || '-'}</span></td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    async function loadActivities() {
+      try {
+        const snap = await db.collection('wasaActivities').get();
+        const tbody = document.getElementById('activities-body');
+
+        if (snap.empty) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;">No entries found</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = snap.docs.map(doc => {
+          const a = doc.data();
+          const photo = a.photoUrl ? `<img src="${a.photoUrl}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;">` : 'No photo';
+          return `
+            <tr>
+              <td><strong>${a.officerName || 'Officer'}</strong></td>
+              <td>${photo}</td>
+              <td><span class="badge badge-success">${a.status || 'submitted'}</span></td>
+              <td>${a.timestamp ? new Date(a.timestamp.seconds * 1000).toLocaleDateString() : 'Today'}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    }
+
+    function exportExcel() {
+      db.collection('wasaUsers').get().then(snap => {
+        const rows = snap.docs.map(d => d.data());
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Officers");
+        XLSX.writeFile(wb, "WASA_Officers.xlsx");
+        showToast('Excel file downloaded! 📄', 'success');
+      });
+    }
+  </script>
+</body>
+</html>
