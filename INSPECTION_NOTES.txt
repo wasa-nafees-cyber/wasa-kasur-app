@@ -1,0 +1,16 @@
+Officer App - Patch Notes
+
+Changes in this patch:
+1. Consumer numbers entered through the officer recovery form must be exactly 5 ASCII digits (0-9). The field is limited to 5 characters and shows a numeric keyboard on mobile.
+2. Recovery submission rejects malformed consumer numbers and blocks duplicate consumer numbers. If the duplicate lookup cannot be completed, submission fails closed instead of silently skipping the check.
+3. Admin activity editor includes an Admin-only Recovery Officer reassignment selector. It updates the activity's officerName, officerPhone and officerRole so reporting attribution follows the selected officer.
+4. Attribution changes are recorded in the existing editHistory, available in the admin panel. No notification is sent. Audit history is intentionally retained for accountability; it is not exposed as a separate notification to officers or management.
+5. Admin activity editing also rejects malformed consumer numbers and blocks duplicate numbers instead of offering an override.
+
+Validation performed:
+- JavaScript syntax checks passed for officer-app.html and admin-panel.html.
+- ZIP integrity test passed after packaging.
+
+Important deployment/security note:
+- This app uses client-side Firestore access. A query-then-write duplicate check can still race if two devices submit the same number simultaneously. To guarantee uniqueness, enforce it with trusted server-side logic / a Firestore transaction or security rules appropriate to the deployment.
+- UI restrictions are not a substitute for Firebase Authentication and Firestore Security Rules. Review rules before production deployment. This patch does not claim a full production security audit.
