@@ -1,0 +1,64 @@
+rules_version = '2';
+// ============================================================================
+//  WASA app - Firestore rules (paste in Firebase Console > Firestore > Rules)
+//
+//  IMPORTANT, please read:
+//  This app does NOT use Firebase Authentication. Officers and admins sign in
+//  with a phone number + password stored inside the wasaUsers collection.
+//  Because of that, Firestore cannot know WHO is calling, so these rules can
+//  not separate "admin" from "officer" or "officer A" from "officer B".
+//  What these rules DO:
+//    - allow only the collections the app really uses (everything else denied)
+//    - check the shape of every new bill-delivery entry (valid status, 5-digit
+//      consumer number, real GPS numbers, server timestamp, no extra fields)
+//    - stop anyone from editing a delivery entry after it is saved
+//  To get real protection (officers cannot read passwords or delete data),
+//  the app must move to Firebase Authentication. See INSPECTION_NOTES.txt.
+// ============================================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- NEW: bill delivery entries (created by officers' phones) ----
+    match /wasaDeliveries/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly([
+          'consumerNo','propertyNo','streetId','streetName','area','status',
+          'lat','lng','accuracy','officerName','officerPhone','officerRole',
+          'deviceTime','cycle','timestamp'])
+        && request.resource.data.keys().hasAll([
+          'status','streetId','lat','lng','officerPhone','deviceTime','timestamp'])
+        && request.resource.data.status in ['delivered','vacant_plot','house_locked','new_house']
+        && request.resource.data.consumerNo is string
+        && (request.resource.data.consumerNo == '' || request.resource.data.consumerNo.matches('^[0-9]{5}$'))
+        && request.resource.data.propertyNo is string && request.resource.data.propertyNo.size() <= 20
+        && request.resource.data.streetId is string && request.resource.data.streetId.size() > 0 && request.resource.data.streetId.size() <= 40
+        && request.resource.data.lat is number && request.resource.data.lat >= -90 && request.resource.data.lat <= 90
+        && request.resource.data.lng is number && request.resource.data.lng >= -180 && request.resource.data.lng <= 180
+        && request.resource.data.deviceTime is number
+        && request.resource.data.timestamp == request.time;
+      allow update: if false;      // an entry can never be changed after saving
+      allow delete: if true;       // admin panel deletes wrong entries (no login to check)
+    }
+
+    // ---- NEW: gali / street list ----
+    match /wasaStreets/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly([
+          'name','area','isActive','createdByName','createdByPhone','deviceTime','createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 40
+        && request.resource.data.area is string && request.resource.data.area.size() <= 40;
+      allow update, delete: if true;   // admin rename / hide
+    }
+
+    // ---- EXISTING collections (same open behaviour the app already needs) ----
+    match /wasaUsers/{id}          { allow read, write: if true; }
+    match /wasaSettings/{id}       { allow read, write: if true; }
+    match /wasaActivityTypes/{id}  { allow read, write: if true; }
+    match /wasaActivities/{id}     { allow read, write: if true; }
+    match /wasaBulkData/{id}       { allow read, write: if true; }
+    match /wasaCorrections/{id}    { allow read, write: if true; }
+    match /wasaDuplicates/{id}     { allow read, write: if true; }
+    match /wasaPasswordResets/{id} { allow read, write: if true; }
+  }
+}
