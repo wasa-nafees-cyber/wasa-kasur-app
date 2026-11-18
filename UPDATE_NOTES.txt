@@ -1,0 +1,27 @@
+WASA Kasur V17 — Billing History + PDF Workflow Reliability Update
+
+Monthly Billing History:
+- Preview/validation remains before saving. Save now shows live progress with completed record count and batch number.
+- Each period is visibly marked as Uploading / Successfully uploaded / Incomplete in the uploaded-period list.
+- A successful period shows a green success confirmation and tells the operator to proceed to the next period.
+- Period records are written in Firestore batches of 400. Progress metadata is updated after each committed batch.
+- If upload is interrupted, the same Excel file can be selected again and the incomplete period resumes from the last confirmed batch. A fully imported period cannot be accidentally uploaded twice.
+
+PDF Bills Archive:
+- Multiple combined PDFs with arbitrary filenames are accepted. Every page is scanned for Account# and exact-matched to the loaded Consumer Master.
+- Visible page-by-page scanning / upload progress and final counts for saved, missing Account#, unmatched, duplicates and errors.
+- Already saved bills remain available if a later page fails; errors report how many were saved.
+- Single PDF download now shows retrieval, preparation and browser-download stages, with clear not-found and error messages.
+- Bulk export shows progress, exports in the requested order, and produces separate ordered PDF parts of up to 500 bills to limit browser memory usage. Final partial part is also flushed when last consumer is missing.
+- Browser may ask permission for multiple downloads; operator must allow it and check Downloads folder.
+
+Validation performed:
+- Admin inline JavaScript syntax check with Node.js passed.
+- ZIP integrity test passed after packaging.
+- Attached PDF sample `wasa_kasur_bill (72).pdf` was inspected: 16,389 pages; Account# text was present in pages 1, 2, 3, 101, 1001 and 16389.
+
+Limitations / operational notes:
+- Actual Firebase network upload and browser-triggered downloads must be tested in the deployed Firebase-connected site; cannot be simulated from this offline build environment.
+- PDF text indexing requires selectable text. Image-only scanned pages need OCR and are reported as missing Account# in this version.
+- Large exports should be allowed to finish with the tab open. Browser multiple-download permission may be required.
+- Existing Firebase security rules and role enforcement have not been redesigned in this update.

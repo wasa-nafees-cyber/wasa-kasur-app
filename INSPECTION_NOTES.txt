@@ -1,0 +1,6 @@
+V17 inspection summary
+- Reviewed the Monthly Billing History and PDF Bills Archive workflows in V16 after user-reported lack of upload/download feedback.
+- Added progress and completion states, resumable monthly-period batch import, visible archive status, single-download stage feedback, and chunked bulk PDF export.
+- Admin inline JavaScript passed `node --check`.
+- Source PDF sample: 16,389 pages; sampled pages contain selectable Account# text.
+- Live Firebase Storage/Firestore upload and real browser download behavior remain deployment-side tests and are not represented as completed here.
