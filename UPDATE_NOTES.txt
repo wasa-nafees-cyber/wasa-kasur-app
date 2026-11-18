@@ -1,0 +1,34 @@
+WASA Kasur V14 — PDF Bulk Workflow Upgrade
+
+PDF Bills page:
+- Upload any number of combined multi-page PDFs; filenames can be anything (they do NOT need to be Consumer Numbers).
+- Every page in every selected PDF is scanned for its printed Account# using PDF text extraction.
+- Every extracted Account# is matched exactly against the loaded Excel Consumer Master (CONSUMER_NO / matching consumer-number column). Only exact matches are stored.
+- Pages with missing Account#, numbers absent from the master, duplicate numbers in the selected PDFs, and processing/upload errors are counted and reported. The first occurrence of a duplicate is kept; later duplicate pages are skipped.
+- Re-uploading the same consumer number replaces only that consumer's stored PDF.
+- Single-consumer download with optional billing history.
+- Bulk export uses the current filtered Consumers result order, or an explicitly pasted consumer-number list in that order.
+- Original bill pages are preserved; history is drawn in the existing blank area below the bill's billing summary headings.
+- Latest six available billing periods are overlaid as Month / Billed / Paid / Adjustment.
+- Large exports are split into ordered PDF parts of up to 500 pages to reduce browser memory failures.
+- Missing bills stop the export by default; optional skip mode reports missing consumer numbers.
+
+Dependencies:
+- PDF processing uses pdf-lib and PDF.js from cdnjs CDN. Internet access is required for these libraries.
+- Existing Firebase Storage and Firestore configuration is reused.
+- Monthly billing history data must already be imported in the Monthly Billing History page.
+
+Important limitations:
+- This update indexes combined PDFs using Account# text extracted from each page. Scanned/image-only pages without selectable text will be reported as Account# missing.
+- The supplied sample bill was checked: A4, 595.3 x 841.9 pt, 49 pages; text extraction found Account# on all 49 pages and all 49 numbers were unique. The overlay uses a blank region and does not move or redraw original bill content. The Excel master matching and Firebase upload still need a live test in your own Firebase-connected deployment.
+- Export is processed in-browser. For 20,000 consumers, keep the browser tab open and allow multiple downloads; the browser may ask permission.
+- Firestore/Storage security rules in the existing project have not been redesigned in this update. Do not treat UI permissions as server-side security enforcement.
+- Existing GPS, login, and other modules are retained from V13.
+
+
+V16 PDF upload hotfix (2026-11-18):
+- Removed any filename-as-consumer-number requirement from combined PDF upload. Upload accepts arbitrary filenames and multiple combined PDFs.
+- PDF.js and pdf-lib now receive independent copies of each file buffer to prevent detached ArrayBuffer errors caused by PDF.js worker transfer.
+- PDF text extraction normalizes whitespace before exact Account# parsing.
+- Service worker cache name bumped to force clients to fetch the updated admin/officer pages instead of stale V11 cached code.
+- Tested supplied sample PDF: 16,389 pages; selectable text contains Account# on sampled pages (including pages 1, 2, 3, 101, 1001, 16389).
