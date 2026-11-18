@@ -1,0 +1,8 @@
+V14 validation:
+- ZIP integrity: passed.
+- Admin inline JavaScript syntax (`node --check`): passed.
+- Supplied original PDF: 49 pages, A4 595.3 x 841.9 pt.
+- Account# extraction pattern checked against all 49 pages: 49/49 found, 49 unique.
+- PDF workflow uses exact Consumer Number only; no fuzzy name/property matching.
+- Browser-side PDF libraries are CDN dependencies.
+- Real Firebase upload/download and 20k export require user-side testing in the deployed Firebase/GitHub Pages environment.

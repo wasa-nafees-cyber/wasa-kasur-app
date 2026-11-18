@@ -1,0 +1,25 @@
+WASA Kasur V14 — PDF Bulk Workflow Upgrade
+
+PDF Bills page:
+- Upload multiple individual PDFs named exactly CONSUMER_NO.pdf.
+- Upload a combined multi-page PDF; each page is indexed by exact Account# text.
+- When consumer master cache is loaded, combined-PDF Account# values are checked against exact consumer numbers.
+- Re-uploading the same consumer number replaces only that consumer's stored PDF.
+- Single-consumer download with optional billing history.
+- Bulk export uses the current filtered Consumers result order, or an explicitly pasted consumer-number list in that order.
+- Original bill pages are preserved; history is drawn in the existing blank area below the bill's billing summary headings.
+- Latest six available billing periods are overlaid as Month / Billed / Paid / Adjustment.
+- Large exports are split into ordered PDF parts of up to 500 pages to reduce browser memory failures.
+- Missing bills stop the export by default; optional skip mode reports missing consumer numbers.
+
+Dependencies:
+- PDF processing uses pdf-lib and PDF.js from cdnjs CDN. Internet access is required for these libraries.
+- Existing Firebase Storage and Firestore configuration is reused.
+- Monthly billing history data must already be imported in the Monthly Billing History page.
+
+Important limitations:
+- This update indexes combined PDFs using Account# text extracted from each page. Scanned/image-only pages without selectable text will be reported as Account# missing.
+- The sample bill was inspected: A4, 595.3 x 841.9 pt, 49 pages, 49 unique Account# values. Overlay uses a blank region and does not move or redraw original bill content.
+- Export is processed in-browser. For 20,000 consumers, keep the browser tab open and allow multiple downloads; the browser may ask permission.
+- Firestore/Storage security rules in the existing project have not been redesigned in this update. Do not treat UI permissions as server-side security enforcement.
+- Existing GPS, login, and other modules are retained from V13.
