@@ -1,0 +1,11 @@
+WASA Kasur V19 — Local-first Billing History and PDF Archive
+
+IMPORTANT: Monthly Billing History and combined PDF archive uploads now save to this browser's IndexedDB on this PC. They do NOT upload these datasets/PDFs to Firebase Storage or Firestore. This avoids Firebase storage/write quota consumption for these two modules. Consumer Master remains on the app's existing data system.
+
+Monthly Billing History: chunked local IndexedDB saves (500 records/chunk), visible progress, resume using the same Excel, period list, delete incomplete or completed local period. Paid blank -> 0. Balance uses supplied BALANCE; if blank, BILL_AMOUNT - PAID_AMOUNT. Adjustment is Not provided because sample source does not include it.
+
+PDF Bills: combined PDFs scanned page-by-page for Account# exact match against loaded Consumer Master; original PDF stored once in IndexedDB, page index stored locally in chunks; single and bulk downloads extract required pages and preserve selected consumer order. Local source archive can be deleted from PDF page.
+
+Local storage is browser/device-specific. Use the same PC, same browser profile and same website origin for upload and later search/download. Clearing browser site data, changing browser/profile/device, or disk/storage eviction can remove local archives. Browser storage persistence is requested but not guaranteed. Keep original Excel/PDF backups. Scanned image-only pages without selectable text require OCR and will be reported as missing Account#.
+
+Legacy Firebase PDF archive remains read-only fallback. This build does not delete existing Firebase data.

@@ -1,0 +1,7 @@
+V19 inspection notes
+- Monthly billing period save path changed to local IndexedDB. No Firebase writes for monthly billing history.
+- Combined PDF archive path changed to local IndexedDB. No Firebase Storage upload or Firestore index writes for new combined PDF archives.
+- Local archive delete controls included for billing periods and source PDFs.
+- Firebase remains used for the rest of the existing application and for legacy PDF fallback.
+- Local data is per browser profile/device and is not automatically shared with officers on other devices.
+- Static syntax and ZIP integrity checks should be run before deployment. Live browser quota and Firebase are not testable in this build environment.
