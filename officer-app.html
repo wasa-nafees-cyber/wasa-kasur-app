@@ -1,0 +1,2245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1A56DB">
+  <meta name="description" content="WASA — Enterprise Field Officer App">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WASA Officer">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <title>WASA Officer — Field App</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <style>
+    :root{--p50:#EFF6FF;--p100:#DBEAFE;--p200:#BFDBFE;--p500:#1A56DB;--p600:#1E40AF;--p700:#1E3A8A;--p900:#0F172A;--s50:#F0FDF4;--s500:#16A34A;--s600:#15803D;--w50:#FFFBEB;--w500:#F59E0B;--w600:#D97706;--d50:#FEF2F2;--d500:#EF4444;--d600:#DC2626;--i50:#F0F9FF;--i500:#3B82F6;--i600:#2563EB;--g25:#FCFCFD;--g50:#F9FAFB;--g100:#F3F4F6;--g200:#E5E7EB;--g300:#D1D5DB;--g400:#9CA3AF;--g500:#6B7280;--g600:#4B5563;--g700:#374151;--g800:#1F2937;--g900:#111827;--r-sm:6px;--r-md:10px;--r-lg:14px;--r-xl:18px;--r-2xl:22px;--r-full:9999px;--sh-sm:0 1px 3px rgba(15,23,42,0.08);--sh-md:0 6px 12px -2px rgba(15,23,42,0.1);--sh-lg:0 14px 28px -6px rgba(15,23,42,0.14);--sh-fab:0 12px 24px rgba(26,86,219,0.4);--font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;}
+    *{box-sizing:border-box;margin:0;padding:0;font-family:var(--font);-webkit-tap-highlight-color:transparent;}
+    body{background:#0B1120;color:var(--g900);display:flex;justify-content:center;align-items:center;min-height:100vh;overflow-x:hidden;}
+    #app-viewport{width:100%;max-width:440px;height:100vh;max-height:960px;background:white;position:relative;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);border-radius:var(--r-2xl);}
+    @media(max-width:480px){#app-viewport{max-width:100%;height:100vh;max-height:100vh;border-radius:0;}}
+
+    .sync-bar{background:linear-gradient(90deg,#1A56DB,#3B82F6);color:white;font-size:0.6875rem;font-weight:700;padding:6px 14px;display:flex;align-items:center;justify-content:space-between;z-index:99;}
+    .sync-bar.offline{background:linear-gradient(90deg,#DC2626,#EF4444);}
+    .sync-bar .pill{background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;}
+
+    .view{display:none;flex-direction:column;flex:1;overflow-y:auto;background:#F8FAFC;animation:vSlide 250ms cubic-bezier(0.16,1,0.3,1);}
+    .view.active{display:flex;}
+    @keyframes vSlide{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+    #view-splash{background:linear-gradient(135deg,#0F172A 0%,#1E3A8A 60%,#1A56DB 100%);color:white;justify-content:center;align-items:center;text-align:center;padding:32px;}
+    .splash-logo{width:96px;height:96px;background:rgba(255,255,255,0.12);backdrop-filter:blur(12px);border-radius:26px;display:flex;align-items:center;justify-content:center;font-size:52px;margin-bottom:24px;}
+
+    .auth-wrap{padding:28px 24px;display:flex;flex-direction:column;justify-content:center;min-height:100%;background:white;}
+    .auth-head{margin-bottom:24px;text-align:center;}
+    .auth-head .ico{font-size:44px;margin-bottom:10px;}
+    .auth-head h2{font-size:1.625rem;font-weight:800;color:var(--g900);letter-spacing:-0.02em;}
+    .auth-head p{color:var(--g500);font-size:0.8125rem;margin-top:4px;}
+
+    .fg{margin-bottom:14px;}
+    .fg label{display:block;font-size:0.75rem;font-weight:700;color:var(--g700);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.03em;}
+    .fg .required{color:var(--d500);}
+    .input{width:100%;padding:12px 14px;font-size:0.9375rem;border:1.5px solid var(--g200);border-radius:var(--r-md);background:var(--g25);outline:none;transition:all 150ms;font-family:var(--font);}
+    .input:focus{border-color:var(--p500);background:white;box-shadow:0 0 0 3.5px var(--p100);}
+    textarea.input{resize:vertical;min-height:80px;}
+
+    .btn{padding:13px 20px;font-size:0.9375rem;font-weight:700;border-radius:var(--r-md);border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:all 150ms;font-family:var(--font);}
+    .btn-full{width:100%;}
+    .btn-primary{background:linear-gradient(135deg,var(--p500),var(--p600));color:white;box-shadow:var(--sh-sm);}
+    .btn-primary:active{transform:scale(0.98);}
+    .btn-outline{background:white;border:1.5px solid var(--g200);color:var(--g700);}
+    .btn-success{background:var(--s500);color:white;}
+    .btn-warning{background:var(--w500);color:white;}
+    .btn-danger{background:var(--d500);color:white;}
+    .btn-info{background:var(--i500);color:white;}
+    .btn-sm{padding:8px 14px;font-size:0.8125rem;}
+    .btn-xs{padding:5px 10px;font-size:0.6875rem;}
+
+    .app-header{background:white;padding:14px 18px;border-bottom:1px solid var(--g200);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .app-header .back-btn{width:36px;height:36px;border-radius:50%;background:var(--g50);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--g700);}
+    .app-header h3{font-size:0.9375rem;font-weight:800;}
+    .user-info{display:flex;align-items:center;gap:11px;}
+    .avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--p500),var(--p700));color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;object-fit:cover;}
+    img.avatar{padding:0;}
+
+    .bottom-nav{background:white;border-top:1px solid var(--g200);display:flex;justify-content:space-around;align-items:center;height:68px;padding-bottom:env(safe-area-inset-bottom);z-index:50;}
+    .nav-tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--g400);font-size:0.6875rem;font-weight:700;cursor:pointer;border:none;background:transparent;flex:1;font-family:var(--font);}
+    .nav-tab i{font-size:1.25rem;}
+    .nav-tab.active{color:var(--p500);}
+    .fab-plus{width:58px;height:58px;background:linear-gradient(135deg,#1A56DB,#1E40AF);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:var(--sh-fab);margin-top:-28px;cursor:pointer;border:4px solid white;transition:transform 150ms;}
+    .fab-plus:active{transform:scale(0.92);}
+
+    .content-pad{padding:18px;}
+
+    .kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
+    .chip-btn{background:var(--g100);border:1px solid var(--g200);border-radius:999px;padding:6px 14px;font-size:.8125rem;font-weight:700;cursor:pointer;color:var(--g700);}
+    .chip-btn.on{background:var(--p500);border-color:var(--p500);color:#fff;}
+    .kpi-box{background:white;padding:14px;border-radius:var(--r-md);border:1px solid var(--g200);box-shadow:var(--sh-sm);position:relative;}
+    .kpi-box .lbl{font-size:0.6875rem;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:0.03em;}
+    .kpi-box .val{font-size:1.5rem;font-weight:800;margin-top:4px;}
+    .kpi-ico{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:0.9375rem;margin-bottom:6px;}
+
+    .sec-card{background:white;border-radius:var(--r-lg);padding:14px;border:1px solid var(--g200);box-shadow:var(--sh-sm);display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;transition:all 200ms;margin-bottom:10px;}
+    .sec-card:hover{box-shadow:var(--sh-md);transform:translateY(-2px);}
+    .sec-card:active{transform:scale(0.98);}
+    .sec-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
+    .sec-ico{width:46px;height:46px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+    .sec-info{flex:1;min-width:0;}
+    .sec-info .name{font-size:0.9375rem;font-weight:800;color:var(--g900);}
+    .sec-info .desc{font-size:0.75rem;color:var(--g500);margin-top:2px;}
+
+    .section-title{font-size:0.75rem;font-weight:800;color:var(--g600);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;padding-left:2px;}
+
+    .sheet-mask{position:absolute;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:none;align-items:flex-end;}
+    .sheet-mask.active{display:flex;animation:maskIn 200ms ease;}
+    @keyframes maskIn{from{opacity:0;}to{opacity:1;}}
+    .sheet{background:white;width:100%;border-top-left-radius:var(--r-2xl);border-top-right-radius:var(--r-2xl);max-height:80vh;overflow-y:auto;animation:sheetIn 300ms cubic-bezier(0.16,1,0.3,1);}
+    @keyframes sheetIn{from{transform:translateY(100%);}to{transform:translateY(0);}}
+    .sheet-handle{width:40px;height:4px;background:var(--g300);border-radius:2px;margin:12px auto 8px;}
+    .sheet-hd{padding:8px 20px 16px;text-align:center;border-bottom:1px solid var(--g100);}
+    .sheet-hd h3{font-size:1.0625rem;font-weight:800;}
+    .sheet-hd p{font-size:0.75rem;color:var(--g500);margin-top:4px;}
+    .sheet-bd{padding:14px 18px 30px;}
+
+    .photo-preview{margin-top:10px;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--g200);background:var(--g50);position:relative;}
+    .photo-preview img{width:100%;height:180px;object-fit:cover;display:block;}
+    .photo-remove{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.65);color:white;border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:0.75rem;}
+
+    .photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .photo-actions .btn{padding:12px 10px;}
+    .photo-meta{font-size:0.6875rem;color:var(--g500);margin-top:6px;}
+    .fg.has-error .input{border-color:var(--d500);background:var(--d50);}
+    .field-error{display:none;margin-top:6px;font-size:0.75rem;font-weight:600;color:var(--d600);align-items:center;gap:6px;}
+    .fg.has-error .field-error{display:flex;}
+
+    .gps-box{background:var(--p50);padding:12px 14px;border-radius:var(--r-md);border:1px solid var(--p100);display:flex;align-items:flex-start;gap:10px;font-size:0.8125rem;color:var(--p700);font-weight:600;}
+    .gps-box .gps-retry{flex-shrink:0;}
+    .gps-box.error{background:var(--d50);color:var(--d600);border-color:#FCA5A5;}
+
+    .sig-wrap{border:2px dashed var(--g300);border-radius:var(--r-md);background:var(--g25);position:relative;height:150px;overflow:hidden;margin-top:6px;}
+    canvas.sig-canvas{width:100%;height:100%;touch-action:none;display:block;}
+    .sig-clear{position:absolute;top:8px;right:8px;background:rgba(15,23,42,0.7);color:white;border:none;padding:4px 10px;border-radius:var(--r-sm);font-size:0.6875rem;font-weight:600;cursor:pointer;}
+
+    #toast-shelf{position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:360px;pointer-events:none;display:flex;flex-direction:column;gap:8px;}
+    .toast{background:var(--g900);color:white;padding:11px 16px;border-radius:var(--r-md);font-size:0.8125rem;font-weight:500;box-shadow:var(--sh-lg);display:flex;align-items:center;gap:10px;animation:tSlide 200ms ease;}
+    .toast.success{background:var(--s600);}
+    .toast.error{background:var(--d600);}
+    .toast.warning{background:var(--w600);}
+    @keyframes tSlide{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
+
+    .loading-center{text-align:center;padding:40px 20px;color:var(--g500);font-size:0.8125rem;}
+    .version-footer{text-align:center;padding:14px 10px;font-size:0.6875rem;color:var(--g400);border-top:1px solid var(--g100);background:white;}
+    .version-footer strong{color:var(--p600);}
+
+    .empty{text-align:center;padding:40px 20px;}
+    .empty .em{font-size:52px;opacity:0.4;margin-bottom:10px;}
+    .empty h4{font-size:1rem;font-weight:700;color:var(--g700);margin-bottom:4px;}
+    .empty p{font-size:0.8125rem;color:var(--g500);}
+
+    .opt-group{display:flex;flex-wrap:wrap;gap:8px;}
+    .opt-pill{padding:8px 14px;border:1.5px solid var(--g200);border-radius:var(--r-full);font-size:0.8125rem;font-weight:600;color:var(--g700);cursor:pointer;background:white;transition:all 150ms;}
+    .opt-pill.selected{background:var(--p500);color:white;border-color:var(--p500);}
+
+    .search-input-wrap{position:relative;margin-bottom:12px;}
+    .search-input-wrap i{position:absolute;left:14px;top:13px;color:var(--p500);}
+    .search-big{width:100%;padding:12px 14px 12px 40px;font-size:0.9375rem;border:2px solid var(--p200);border-radius:var(--r-md);background:white;outline:none;font-family:var(--font);box-shadow:var(--sh-sm);}
+    .search-big:focus{border-color:var(--p500);box-shadow:0 0 0 3.5px var(--p100);}
+    .filter-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+    .filter-chip{background:white;border:1.5px solid var(--g200);border-radius:var(--r-full);padding:5px 10px;font-size:0.6875rem;display:flex;align-items:center;gap:4px;}
+    .filter-chip.active{border-color:var(--p500);background:var(--p50);color:var(--p700);}
+    .filter-chip .x{color:var(--d500);cursor:pointer;font-weight:800;padding-left:2px;}
+    .filter-chip-add{background:var(--p500);color:white;border-color:var(--p500);font-weight:700;cursor:pointer;}
+    .result-info{font-size:0.75rem;color:var(--g700);font-weight:600;margin-bottom:10px;}
+    .result-card{background:white;border-radius:var(--r-md);padding:12px;border:1px solid var(--g200);margin-bottom:8px;box-shadow:var(--sh-sm);}
+    .result-card .rc-title{font-size:0.875rem;font-weight:800;color:var(--g900);margin-bottom:4px;}
+    .result-card .rc-meta{font-size:0.75rem;color:var(--g600);}
+    .result-card .rc-badge{display:inline-block;font-size:0.625rem;font-weight:700;padding:2px 8px;border-radius:var(--r-full);background:var(--p50);color:var(--p600);margin-bottom:6px;}
+
+    .fp-tabs{display:flex;gap:4px;margin-bottom:12px;border-bottom:2px solid var(--g100);}
+    .fp-tab{padding:8px 12px;font-size:0.75rem;font-weight:700;color:var(--g500);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:var(--font);}
+    .fp-tab.active{color:var(--p600);border-bottom-color:var(--p500);}
+    .fp-val-list{max-height:200px;overflow-y:auto;border:1px solid var(--g200);border-radius:var(--r-md);padding:6px;background:var(--g25);}
+    .fp-val-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;}
+    .fp-val-item:hover{background:var(--p50);}
+    .fp-val-item input{width:16px;height:16px;}
+    .fp-val-item .txt{font-size:0.75rem;flex:1;color:var(--g700);}
+    .fp-val-item .cnt{font-size:0.625rem;color:var(--g500);background:var(--g100);padding:1px 5px;border-radius:4px;}
+
+    .detail-row{display:flex;justify-content:space-between;padding:6px 0;font-size:0.75rem;border-bottom:1px dashed var(--g200);}
+    .detail-row .k{color:var(--g500);font-weight:600;flex:1;}
+    .detail-row .v{color:var(--g800);font-weight:700;text-align:right;max-width:60%;word-break:break-word;}
+
+  .nbell{position:relative;background:var(--g100,#f1f5f9);border:0;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:1rem;margin-right:8px}
+.nbell .nb{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#DC2626;color:#fff;font-size:.65rem;font-weight:800;display:none;align-items:center;justify-content:center;padding:0 4px}
+#npanel{position:fixed;inset:0;background:#fff;z-index:9000;transform:translateY(100%);transition:transform .25s;display:flex;flex-direction:column}
+#npanel.open{transform:none}
+#npanel .nhd{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #e5e7eb;font-weight:800}
+#adm-ov{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:9500;display:none;align-items:flex-end;}
+#adm-ov.open{display:flex;}
+#adm-ov .sheet{background:#fff;width:100%;max-height:85vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px;}
+#adm-ov .sheet h3{margin:0 0 10px;font-size:1rem;}
+#adm-ov .kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:.8125rem;}
+#adm-ov .kv b{color:#64748b;font-weight:700;}
+
+#npanel-list{overflow-y:auto;flex:1}
+.nitem{display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid #f1f5f9}.nitem .ndot{width:9px;height:9px;border-radius:50%;margin-top:6px;flex:none}
+.nitem.unread{background:#EFF6FF}.nitem.unread .ndot{background:#1A56DB}
+.ntitle{font-weight:800;font-size:.875rem}.nbody{font-size:.8125rem;color:#475569;margin-top:2px}.ntime{font-size:.7rem;color:#64748b;margin-top:4px}
+
+    /* ===== v12 additions ===== */
+    .reg-msg{border-radius:var(--r-md);padding:12px 14px;font-size:.8125rem;line-height:1.5;margin-bottom:14px;font-weight:600;}
+    .reg-msg.error{background:var(--d50);color:var(--d600);border:1px solid #FCA5A5;}
+    .reg-msg.ok{background:var(--s50);color:var(--s600);border:1px solid #86EFAC;}
+    .reg-success{text-align:center;padding:30px 10px;}
+    .reg-success .big-ok{font-size:64px;margin-bottom:8px;}
+    .reg-success h3{font-size:1.25rem;font-weight:800;color:var(--s600);margin-bottom:10px;}
+    .reg-success p{font-size:.875rem;color:var(--g700);line-height:1.55;}
+    .reg-success .btn{margin-top:22px;}
+    .pending-note{display:none;background:var(--w50);border:1px solid #FCD34D;color:var(--w600);border-radius:var(--r-md);padding:10px 12px;font-size:.8125rem;font-weight:600;margin-bottom:14px;}
+
+    #drawer-mask{position:absolute;inset:0;background:rgba(15,23,42,.5);z-index:400;display:none;}
+    #drawer-mask.open{display:block;animation:maskIn 200ms ease;}
+    #drawer{position:absolute;top:0;right:0;bottom:0;width:80%;max-width:320px;background:#fff;z-index:401;transform:translateX(105%);transition:transform .25s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;}
+    #drawer.open{transform:none;box-shadow:-10px 0 30px rgba(0,0,0,.25);}
+    .dr-head{background:linear-gradient(135deg,#0F172A,#1E3A8A 60%,#1A56DB);color:#fff;padding:26px 18px 20px;display:flex;gap:12px;align-items:center;}
+    .dr-avatar{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:24px;flex:none;}
+    .dr-name{font-weight:800;font-size:1rem;}
+    .dr-role{font-size:.75rem;opacity:.8;margin-top:2px;}
+    .dr-nav{flex:1;overflow-y:auto;padding:10px 8px;}
+    .dr-item{width:100%;display:flex;align-items:center;gap:14px;padding:14px 12px;border:none;background:transparent;border-radius:12px;font-size:.9375rem;font-weight:700;color:var(--g800);cursor:pointer;text-align:left;font-family:var(--font);}
+    .dr-item:active{background:var(--p50);}
+    .dr-item i{width:22px;text-align:center;color:var(--p500);font-size:1.05rem;}
+    .dr-item span{flex:1;}
+    .dr-badge{font-style:normal;background:var(--p500);color:#fff;font-size:.6875rem;font-weight:800;padding:2px 8px;border-radius:99px;}
+    .dr-out{border-top:1px solid var(--g200);border-radius:0;color:var(--d600);padding:16px 20px;}
+    .dr-out i{color:var(--d500);}
+
+    .tcard{background:#fff;border:1px solid var(--g200);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:var(--sh-sm);}
+    .tcard .trow{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+    .tcard .tname{font-weight:800;font-size:.9375rem;color:var(--g900);}
+    .tcard .tarea{font-size:.75rem;color:var(--g500);font-weight:600;margin-top:2px;}
+    .tcard .tnum{font-size:.9375rem;color:var(--g700);white-space:nowrap;}
+    .tcard .tbar{height:10px;background:var(--g100);border-radius:99px;overflow:hidden;margin:11px 0 7px;}
+    .tcard .tbar div{height:100%;border-radius:99px;transition:width .4s;}
+    .tcard .tfoot{display:flex;justify-content:space-between;gap:8px;font-size:.75rem;color:var(--g500);font-weight:600;}
+
+    .chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+    .chip-n{background:rgba(0,0,0,.08);border-radius:99px;padding:0 7px;margin-left:4px;font-size:.6875rem;}
+    .chip-btn.on .chip-n{background:rgba(255,255,255,.25);}
+    .mini-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin:12px 0 14px;}
+    .mini{background:#fff;border:1px solid var(--g200);border-radius:12px;padding:10px 8px;text-align:center;}
+    .mini .mv{font-size:1.15rem;font-weight:800;}
+    .mini .ml{font-size:.6875rem;color:var(--g500);font-weight:700;margin-top:2px;}
+    .day-hd{display:flex;justify-content:space-between;font-size:.75rem;font-weight:800;color:var(--g600);text-transform:uppercase;letter-spacing:.04em;margin:14px 2px 8px;}
+    .wait-badge{font-size:.625rem;font-weight:800;color:var(--w600);background:var(--w50);border:1px solid #FCD34D;padding:2px 8px;border-radius:99px;white-space:nowrap;}
+    .ok-badge{font-size:.625rem;font-weight:800;color:var(--s600);background:var(--s50);padding:2px 8px;border-radius:99px;white-space:nowrap;}
+
+    .req-note{border-radius:12px;padding:10px 12px;font-size:.8125rem;margin-top:12px;text-align:left;}
+    .req-note.wait{background:var(--w50);border:1px solid #FCD34D;color:var(--w600);}
+    .req-note.bad{background:var(--d50);border:1px solid #FCA5A5;color:var(--d600);}
+
+    .seg{display:flex;background:var(--g100);border-radius:99px;padding:3px;gap:2px;}
+    .seg button{border:none;background:transparent;width:40px;height:30px;border-radius:99px;cursor:pointer;color:var(--g600);font-size:.9rem;}
+    .seg button.on{background:var(--p500);color:#fff;}
+    .qs-wrap{margin-bottom:10px;}
+    .qs-wrap label{display:block;font-size:.6875rem;font-weight:800;color:var(--p600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+    .qs-wrap select{font-weight:700;}
+    .map-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+    #s-map{height:46vh;min-height:280px;border-radius:14px;border:1px solid var(--g200);position:relative;z-index:0;isolation:isolate;}
+    #s-map-card{background:#fff;border:1px solid var(--p200);border-radius:14px;padding:12px 14px;margin-top:10px;box-shadow:var(--sh-md);}
+    .mc-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
+    .mc-title{font-weight:800;font-size:1rem;color:var(--g900);}
+    .mc-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+    #s-map-list{margin-top:12px;}
+    .wpin{background:transparent!important;border:none!important;}
+  </style>
+</head>
+<body>
+
+  <div id="app-viewport">
+    <div id="sync-bar" class="sync-bar">
+      <span><i class="fa-solid fa-wifi"></i> <span id="sync-text">Online — Ready</span></span>
+      <span class="pill" id="p-pill">0 Pending</span>
+    </div>
+    <div id="toast-shelf"></div>
+
+    <!-- SPLASH -->
+    <div id="view-splash" class="view active">
+      <div class="splash-logo">💧</div>
+      <h1 style="font-size:2rem;font-weight:900;letter-spacing:-0.03em;" id="sp-title">WASA</h1>
+      <p style="opacity:0.7;margin-top:6px;font-size:0.875rem;" id="sp-sub">Field Officer Portal</p>
+      <div style="margin-top:40px;color:#93C5FD;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;"></i></div>
+      <div style="position:absolute;bottom:24px;opacity:0.5;font-size:0.6875rem;">Developed by <span id="sp-dev">NAFEES</span> • v<span id="sp-ver">3.0.0</span></div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="view-login" class="view">
+      <div class="auth-wrap">
+        <div class="auth-head">
+          <div class="ico">💧</div>
+          <h2 id="lg-title">Officer Portal</h2>
+          <p id="lg-sub">Sign in to start field operations</p>
+        </div>
+        <div id="l-pending-note" class="pending-note"></div>
+        <form onsubmit="doLogin(event)">
+          <div class="fg"><label>Phone Number <span class="required">*</span></label>
+            <input type="tel" id="l-phone" class="input" placeholder="03001234567" pattern="[0-9]{11}" required></div>
+          <div class="fg"><label>Password <span class="required">*</span></label>
+            <input type="password" id="l-pass" class="input" placeholder="••••••••" required></div>
+          <button type="submit" class="btn btn-primary btn-full" id="l-btn"><span>Sign In</span> <i class="fa-solid fa-arrow-right"></i></button>
+        </form>
+        <button type="button" class="btn btn-outline btn-full" style="margin-top:12px;" onclick="openRegister()">Request Account Registration</button>
+        <button type="button" class="btn btn-outline btn-full" style="margin-top:8px;" onclick="switchView('view-forgot')">Forgot Password?</button>
+      </div>
+      <div class="version-footer">Developed by <strong id="lg-dev">NAFEES</strong> • v<span id="lg-ver">3.0.0</span></div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="view-register" class="view">
+      <div class="app-header">
+        <button class="back-btn" onclick="switchView('view-login')"><i class="fa-solid fa-arrow-left"></i></button>
+        <h3>Request New Account</h3>
+        <div style="width:36px;"></div>
+      </div>
+      <div class="content-pad">
+        <div id="r-success" class="reg-success" style="display:none;"><div id="r-success-body"></div><button type="button" class="btn btn-primary btn-full" onclick="resetRegisterView();switchView('view-login')">Back to Sign In</button></div>
+        <div id="r-form-wrap">
+        <div id="r-msg" class="reg-msg error" style="display:none;"></div>
+        <form onsubmit="doRegister(event)">
+          <div class="fg"><label>Full Name <span class="required">*</span></label>
+            <input type="text" id="r-name" class="input" placeholder="Muhammad Ali" required></div>
+          <div class="fg"><label>Phone (11 digits) <span class="required">*</span></label>
+            <input type="tel" id="r-phone" class="input" pattern="[0-9]{11}" placeholder="03001234567" required></div>
+          <div class="fg"><label>CNIC (13 digits) <span class="required">*</span></label>
+            <input type="text" id="r-cnic" class="input" pattern="[0-9]{13}" placeholder="3520212345671" required></div>
+          <div class="fg"><label>Gender <span class="required">*</span></label>
+            <select id="r-gender" class="input" required><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+          <div class="fg"><label>Designation <span class="required">*</span></label>
+            <select id="r-desig" class="input" required>
+              <option value="Field Officer">Field Officer</option>
+              <option value="Recovery Officer">Recovery Officer</option>
+              <option value="Management">Management</option>
+            </select></div>
+          <div class="fg"><label>Password (min 6) <span class="required">*</span></label>
+            <input type="password" id="r-pass" class="input" minlength="6" required></div>
+          <div id="r-otp-box" style="display:none;margin-bottom:12px;"><div class="fg"><label>SMS code sent to your phone</label><input type="text" id="r-otp" class="input" inputmode="numeric" maxlength="6" placeholder="6-digit code"></div><button type="button" class="btn btn-primary btn-full" onclick="regVerifyOtp()">Verify code &amp; send request</button></div>
+          <div id="r-recaptcha"></div>
+          <button type="submit" class="btn btn-primary btn-full" id="r-submit">Submit Request to Admin</button>
+        </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORGOT -->
+    <div id="view-forgot" class="view">
+      <div class="app-header">
+        <button class="back-btn" onclick="switchView('view-login')"><i class="fa-solid fa-arrow-left"></i></button>
+        <h3>Forgot Password</h3>
+        <div style="width:36px;"></div>
+      </div>
+      <div class="content-pad">
+        <div style="background:var(--w50);padding:12px;border-radius:var(--r-md);border-left:3px solid var(--w500);margin-bottom:16px;font-size:0.8125rem;color:var(--w600);">
+          <i class="fa-solid fa-circle-info"></i> Enter your phone and CNIC. Depending on Admin settings you get an SMS code, or Admin reviews your request.
+        </div>
+        <form onsubmit="doForgot(event)">
+          <div class="fg"><label>Registered Phone <span class="required">*</span></label>
+            <input type="tel" id="fg-phone" class="input" pattern="[0-9]{11}" required></div>
+          <div class="fg"><label>Your CNIC <span class="required">*</span></label>
+            <input type="text" id="fg-cnic" class="input" pattern="[0-9]{13}" required></div>
+          <div class="fg"><label>New Password <span class="required">*</span></label>
+            <input type="password" id="fg-new" class="input" minlength="6" required></div>
+          <div id="fg-otp-box" style="display:none;margin-bottom:12px;"><div class="fg"><label>SMS code sent to your phone</label><input type="text" id="fg-otp" class="input" inputmode="numeric" maxlength="6" placeholder="6-digit code"></div><button type="button" class="btn btn-primary btn-full" onclick="fgVerifyOtp()">Verify code &amp; change password</button></div>
+          <div id="fg-recaptcha"></div>
+          <button type="submit" class="btn btn-primary btn-full" id="fg-submit">Send Reset Request</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="view-dashboard" class="view">
+      <div class="app-header">
+        <div class="user-info">
+          <div class="avatar" id="u-avatar">?</div>
+          <div>
+            <div style="font-size:0.9375rem;font-weight:800;" id="u-name">Officer</div>
+            <div style="font-size:0.6875rem;color:var(--g500);" id="u-role">Field Officer</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;"><button class="back-btn" onclick="switchView('view-inbox')" title="Inbox"><i class="fa-solid fa-envelope"></i></button><button class="nbell" onclick="nTogglePanel()" title="Notifications"><i class="fa-solid fa-bell"></i><span class="nb" id="nbell-badge">0</span></button><button class="back-btn" onclick="switchView('view-profile')" title="Profile"><i class="fa-solid fa-user"></i></button><button class="back-btn" style="margin-left:6px;" onclick="openDrawer()" title="Menu"><i class="fa-solid fa-bars"></i></button></div>
+      </div>
+      <div id="npanel"><div class="nhd"><span>🔔 Notifications</span><span><button class="btn btn-outline btn-sm" onclick="nMarkAll()">Mark all read</button> <button class="btn btn-outline btn-sm" onclick="nTogglePanel()">✕</button></span></div><div id="npanel-list"></div></div>
+
+      <div class="content-pad">
+        <div id="officer-targets" style="margin-bottom:18px;"></div>
+
+        <div class="section-title">📊 My Performance by Form</div>
+        <div id="home-type-filter" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
+        <div id="home-type-stats" style="background:white;border-radius:var(--r-md);padding:14px;border:1px solid var(--g200);margin-bottom:20px;"></div>
+
+        <div class="section-title">🎯 Quick Actions</div>
+        <div id="dash-sections">
+          <div class="loading-center"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading sections...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div id="view-search" class="view">
+      <div class="app-header">
+        <div style="width:84px;"></div>
+        <h3>🔍 Search Data</h3>
+        <div class="seg"><button id="seg-list" class="on" onclick="setSearchMode('list')" title="List"><i class="fa-solid fa-list"></i></button><button id="seg-map" onclick="setSearchMode('map')" title="Map"><i class="fa-solid fa-map-location-dot"></i></button></div>
+      </div>
+      <div class="content-pad">
+        <div class="qs-wrap"><label>⚡ Quick search by</label>
+          <select id="s-col" class="input" onchange="onQuickColChange()"><option value="*">All fields</option></select></div>
+        <div class="search-input-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="s-input" class="search-big" placeholder="Search name, phone, CNIC, account..." oninput="onSearchInput(this.value)">
+        </div>
+        <div class="filter-chips" id="s-chips">
+          <div class="filter-chip filter-chip-add" onclick="openFilterSheet()"><i class="fa-solid fa-filter"></i> Add Filter</div>
+        </div>
+        <div class="result-info" id="s-info">Type to search or add filters</div>
+        <div id="s-list-wrap">
+          <div id="s-results">
+            <div class="empty"><div class="em">🔎</div><h4>Ready to search</h4><p>Type above to find consumer data.</p></div>
+          </div>
+        </div>
+        <div id="s-map-wrap" style="display:none;">
+          <div class="map-tools"><button class="btn btn-outline btn-xs" onclick="locateMe()"><i class="fa-solid fa-location-crosshairs"></i> My location</button><button id="s-load-all" class="btn btn-outline btn-xs" onclick="loadAllEntries()"><i class="fa-solid fa-users"></i> Show all officers</button></div>
+          <div id="s-map"></div>
+          <div id="s-map-card" style="display:none;"></div>
+          <div id="s-map-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY (My Activity tracker) -->
+    <div id="view-activity" class="view">
+      <div class="app-header">
+        <button class="back-btn" onclick="switchView('view-dashboard')"><i class="fa-solid fa-arrow-left"></i></button>
+        <h3>📋 My Activity</h3>
+        <button class="back-btn" onclick="loadMyActivities(true)" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
+      </div>
+      <div class="content-pad">
+        <div id="act-form-chips" class="chip-row"></div>
+        <div class="fg" style="margin-top:14px;"><label>Period</label>
+          <select id="act-range" class="input" onchange="actShown=60;renderMyActivities()">
+            <option value="today">Today</option><option value="yesterday">Yesterday</option><option value="week" selected>Last 7 Days</option><option value="month">Last 30 Days</option><option value="all">All Time</option><option value="custom">Custom Dates</option>
+          </select></div>
+        <div id="act-custom" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;"><input type="date" id="act-from" class="input" onchange="renderMyActivities()"><input type="date" id="act-to" class="input" onchange="renderMyActivities()"></div>
+        <div id="act-summary" class="mini-grid"></div>
+        <div id="my-activities">
+          <div class="loading-center"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TARGETS -->
+    <div id="view-targets" class="view">
+      <div class="app-header">
+        <button class="back-btn" onclick="switchView('view-dashboard')"><i class="fa-solid fa-arrow-left"></i></button>
+        <h3>🎯 My Targets</h3>
+        <button class="back-btn" onclick="renderTargetsPage()" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
+      </div>
+      <div class="content-pad">
+        <div id="targets-list"></div>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="view-reports" class="view">
+      <div class="app-header">
+        <h3 style="margin:0 auto;">📊 My Reports</h3>
+      </div>
+      <div class="content-pad">
+        <div class="fg">
+          <label>Time Period</label>
+          <select id="rep-time" class="input" onchange="renderReports()">
+            <option value="today">Today</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="all" selected>All Time</option>
+          </select>
+        </div>
+        <div class="fg"><label>Activity Type</label><select id="rep-type" class="input" onchange="renderReports()"><option value="all">All</option></select></div>
+        <div id="rep-stats"></div>
+        <div id="rep-mgmt-only" style="display:none;margin-top:16px;">
+          <div style="background:var(--s50);padding:12px;border-radius:var(--r-md);border-left:3px solid var(--s500);font-size:0.75rem;color:var(--s600);margin-bottom:12px;">
+            <i class="fa-solid fa-user-tie"></i> <strong>Management View:</strong> Download enabled
+          </div>
+          <button class="btn btn-success btn-full" onclick="downloadMyReport()"><i class="fa-solid fa-download"></i> Download My Activity Report</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INBOX -->
+    <div id="view-inbox" class="view"><div class="app-header"><button class="back-btn" onclick="switchView('view-dashboard')"><i class="fa-solid fa-arrow-left"></i></button><h3 style="margin:0 auto;">✉️ Inbox</h3><div style="width:36px;"></div></div><div class="content-pad"><div id="officer-inbox-list" style="max-height:55vh;overflow:auto;"></div><div class="fg" style="margin-top:12px;"><label>Message to Admin</label><textarea id="officer-msg" class="input" rows="3" placeholder="Write your message..."></textarea></div><button class="btn btn-primary btn-full" onclick="officerSendMessage()">Send Message</button></div></div>
+
+    <!-- PROFILE -->
+    <div id="view-profile" class="view">
+      <div class="app-header">
+        <button class="back-btn" onclick="switchView('view-dashboard')"><i class="fa-solid fa-arrow-left"></i></button>
+        <h3>My Profile</h3>
+        <div style="width:36px;"></div>
+      </div>
+      <div class="content-pad">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div id="pf-avatar" class="avatar" style="width:100px;height:100px;font-size:2.5rem;margin:0 auto 12px;">?</div>
+          <div style="font-size:1.25rem;font-weight:800;" id="pf-name">-</div>
+          <div style="font-size:0.8125rem;color:var(--g500);" id="pf-role">-</div>
+          <div id="pf-request" class="req-note" style="display:none;"></div>
+        </div>
+
+        <div style="background:white;border-radius:var(--r-lg);border:1px solid var(--g200);padding:14px;box-shadow:var(--sh-sm);">
+          <div class="detail-row"><span class="k">📱 Phone</span><span class="v" id="pf-phone">-</span></div>
+          <div class="detail-row"><span class="k">🆔 CNIC</span><span class="v" id="pf-cnic">-</span></div>
+          <div class="detail-row"><span class="k">💼 Designation</span><span class="v" id="pf-desig">-</span></div>
+          <div class="detail-row"><span class="k">🔑 Role</span><span class="v" id="pf-role2">-</span></div>
+          <div class="detail-row"><span class="k">✅ Status</span><span class="v" id="pf-status">-</span></div>
+        </div>
+
+        <div style="margin-top:20px;">
+          <button class="btn btn-primary btn-full" onclick="openProfileEdit()" style="margin-bottom:8px;"><i class="fa-solid fa-user-pen"></i> Edit Profile</button>
+          <button class="btn btn-outline btn-full" onclick="switchView('view-forgot')" style="margin-bottom:8px;"><i class="fa-solid fa-key"></i> Request Password Change</button>
+          <button class="btn btn-danger btn-full" onclick="doLogout()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out</button>
+        </div>
+      </div>
+      <div class="version-footer">Developed by <strong id="pf-dev">NAFEES</strong> • v<span id="pf-ver">3.0.0</span></div>
+    </div>
+
+    <!-- DYNAMIC FORM -->
+    <div id="view-form" class="view">
+      <div class="app-header">
+        <button class="back-btn" onclick="switchView('view-dashboard')"><i class="fa-solid fa-arrow-left"></i></button>
+        <h3 id="form-title">Activity Form</h3>
+        <div style="width:36px;"></div>
+      </div>
+      <div class="content-pad">
+        <form id="dyn-form" onsubmit="doSubmitForm(event)">
+          <div id="dyn-fields"></div>
+          <button type="submit" class="btn btn-success btn-full" id="next-btn" style="margin-top:14px;display:none;" onclick="submitAgain=true"><i class="fa-solid fa-forward"></i> Save &amp; Next</button>
+          <button type="submit" class="btn btn-primary btn-full" id="submit-btn" style="margin-top:10px;" onclick="submitAgain=false"><i class="fa-solid fa-check"></i> Submit Entry</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- CORRECTION -->
+    <div id="view-correction" class="view">
+      <div class="app-header">
+        <button class="back-btn" onclick="closeCorrection()"><i class="fa-solid fa-arrow-left"></i></button>
+        <h3>Suggest Correction</h3>
+        <div style="width:36px;"></div>
+      </div>
+      <div class="content-pad">
+        <div style="background:var(--w50);padding:12px;border-radius:var(--r-md);border-left:3px solid var(--w500);font-size:0.75rem;color:var(--w600);margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info"></i> Edit wrong fields below. Admin will review.
+        </div>
+        <div class="fg"><label>Reason for Correction *</label>
+          <textarea id="corr-reason" class="input" placeholder="e.g. Wrong contact number..." required></textarea></div>
+        <div id="corr-fields"></div>
+        <button class="btn btn-primary btn-full" onclick="submitCorrection()" style="margin-top:14px;"><i class="fa-solid fa-paper-plane"></i> Send to Admin</button>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div id="bottom-nav" class="bottom-nav" style="display:none;">
+      <button class="nav-tab active" data-view="view-dashboard" onclick="switchView('view-dashboard')">
+        <i class="fa-solid fa-house"></i><span>Home</span>
+      </button>
+      <button class="nav-tab" data-view="view-search" onclick="switchView('view-search')">
+        <i class="fa-solid fa-magnifying-glass"></i><span>Search</span>
+      </button>
+      <div class="fab-plus" onclick="openSectionSheet()"><i class="fa-solid fa-plus"></i></div>
+      <button class="nav-tab" data-view="view-activity" onclick="switchView('view-activity')">
+        <i class="fa-solid fa-list-check"></i><span>Activity</span>
+      </button>
+      <button class="nav-tab" data-view="view-reports" onclick="switchView('view-reports')">
+        <i class="fa-solid fa-chart-line"></i><span>Reports</span>
+      </button>
+    </div>
+
+    <!-- SIDE MENU -->
+    <div id="drawer-mask" onclick="closeDrawer()"></div>
+    <aside id="drawer">
+      <div class="dr-head"><div class="dr-avatar">💧</div><div><div class="dr-name" id="dr-name">Officer</div><div class="dr-role" id="dr-role"></div></div></div>
+      <nav class="dr-nav">
+        <button class="dr-item" onclick="drawerGo('view-targets')"><i class="fa-solid fa-bullseye"></i><span>My Targets</span><em class="dr-badge" id="dr-targets-badge" style="display:none;"></em></button>
+        <button class="dr-item" onclick="drawerGo('view-activity')"><i class="fa-solid fa-list-check"></i><span>My Activity</span><em class="dr-badge" id="dr-act-badge" style="display:none;background:var(--w500);"></em></button>
+        <button class="dr-item" onclick="drawerGo('map')"><i class="fa-solid fa-map-location-dot"></i><span>Consumer Map</span></button>
+        <button class="dr-item" onclick="drawerGo('view-reports')"><i class="fa-solid fa-chart-line"></i><span>My Reports</span></button>
+        <button class="dr-item" onclick="drawerGo('view-inbox')"><i class="fa-solid fa-envelope"></i><span>Inbox</span></button>
+        <button class="dr-item" onclick="drawerGo('view-profile')"><i class="fa-solid fa-user"></i><span>My Profile</span></button>
+      </nav>
+      <button class="dr-item dr-out" onclick="closeDrawer();doLogout()"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Sign Out</span></button>
+    </aside>
+
+    <!-- PROFILE EDIT SHEET -->
+    <div class="sheet-mask" id="sheet-pedit" onclick="closeSheet(event, 'sheet-pedit')">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-hd"><h3>Edit My Profile</h3><p id="pe-note">Changes are sent to Admin.</p></div>
+        <div class="sheet-bd">
+          <div style="text-align:center;margin-bottom:14px;">
+            <div id="pe-avatar" class="avatar" style="width:84px;height:84px;font-size:2rem;margin:0 auto 8px;overflow:hidden;">?</div>
+            <input type="file" id="pe-photo" accept="image/*" hidden onchange="onProfilePhoto(this)">
+            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('pe-photo').click()"><i class="fa-solid fa-camera"></i> Change Photo</button>
+          </div>
+          <div class="fg"><label>Full Name</label><input type="text" id="pe-name" class="input" maxlength="60"></div>
+          <div class="fg"><label>CNIC (13 digits)</label><input type="text" id="pe-cnic" class="input" inputmode="numeric" maxlength="13" placeholder="3520212345671"></div>
+          <div class="fg"><label>Gender</label><select id="pe-gender" class="input"><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
+          <div id="pe-err" style="color:var(--d600);font-size:.8125rem;font-weight:700;min-height:18px;margin-bottom:8px;"></div>
+          <div style="font-size:.6875rem;color:var(--g500);margin-bottom:10px;">Phone number and role can only be changed by Admin.</div>
+          <button class="btn btn-primary btn-full" id="pe-save" onclick="saveProfileEdit()"><i class="fa-solid fa-paper-plane"></i> Send to Admin</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION PICKER SHEET -->
+    <div class="sheet-mask" id="sheet-sections" onclick="closeSheet(event, 'sheet-sections')">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-hd"><h3>Choose Activity Type</h3><p>Select what to submit</p></div>
+        <div class="sheet-bd" id="sheet-sections-body"><div class="loading-center"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading...</div></div>
+      </div>
+    </div>
+
+    <!-- FILTER SHEET -->
+    <div class="sheet-mask" id="sheet-filter" onclick="closeSheet(event, 'sheet-filter')">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-hd"><h3>Add Column Filter</h3><p>Multi-value or quick text</p></div>
+        <div class="sheet-bd">
+          <div class="fg"><label>Column</label><select id="fp-column" class="input" onchange="fpRebuild()"></select></div>
+          <div class="fp-tabs">
+            <button class="fp-tab active" data-mode="text" onclick="fpSwitch('text')">📝 Text</button>
+            <button class="fp-tab" data-mode="multi" onclick="fpSwitch('multi')">☑️ Multi-select</button>
+          </div>
+          <div id="fp-text-mode">
+            <div class="fg"><label>Value (partial match)</label>
+              <input type="text" id="fp-text" class="input" placeholder="e.g. hospital, kasur..."></div>
+          </div>
+          <div id="fp-multi-mode" style="display:none;">
+            <div class="fg"><label>Search values</label>
+              <input type="text" id="fp-search" class="input" placeholder="Filter list..." oninput="fpRebuild()"></div>
+            <div class="fp-val-list" id="fp-val-list"></div>
+            <div style="margin-top:6px;display:flex;justify-content:space-between;align-items:center;font-size:0.6875rem;">
+              <button class="btn btn-outline btn-xs" onclick="fpSelectAll()">Select All</button>
+              <button class="btn btn-outline btn-xs" onclick="fpClearAll()">Clear</button>
+              <span id="fp-count">0 selected</span>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full" style="margin-top:14px;" onclick="applyFilter()"><i class="fa-solid fa-check"></i> Apply Filter</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAIL SHEET -->
+    <div class="sheet-mask" id="sheet-detail" onclick="closeSheet(event, 'sheet-detail')">
+      <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-hd"><h3 id="dt-title">Record Detail</h3></div>
+        <div class="sheet-bd">
+          <div id="dt-body"></div>
+          <button id="dt-dir" class="btn btn-primary btn-full" style="margin-top:14px;" onclick="detailDirections()"><i class="fa-solid fa-diamond-turn-right"></i> Get Directions</button>
+          <button class="btn btn-warning btn-full" style="margin-top:8px;" onclick="openCorrectionFromDetail()"><i class="fa-solid fa-pen"></i> Report Issue / Suggest Correction</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+  /* ==========================================================
+     🔑 STEP: Yahan apni NAYI Firebase keys paste karo
+     (Admin panel jaisi same keys)
+     ========================================================== */
+  const firebaseConfig = {
+    apiKey: "AIzaSyDTOBgy0LvR19eU8hJFoubGfP9_Z-gl4fA",
+    authDomain: "wasa-app-pk.firebaseapp.com",
+    projectId: "wasa-app-pk",
+    storageBucket: "wasa-app-pk.firebasestorage.app",
+    messagingSenderId: "347884655686",
+    appId: "1:347884655686:web:875cfd57cb555050a2a647"
+  };
+
+  const cloudinaryConfig = {
+    cloudName: "yrncips2",
+    uploadPreset: "wasa_uploads"
+  };
+  /* ========================================================== */
+
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let me=null, sections=[];
+  let settings={
+    officerTitle:'WASA', officerSub:'Field Officer Portal', version:'3.0.0', developer:'NAFEES',
+    officerWidgets:[
+      {label:'My Total',icon:'📊',source:'activities_count',filter:'all',color:'primary'},
+      {label:'Today',icon:'📅',source:'activities_count',filter:'today',color:'success'},
+      {label:'This Week',icon:'📆',source:'activities_count',filter:'week',color:'info'},
+      {label:'Recovery',icon:'💰',source:'activities_amount',filter:'all',color:'warning'}
+    ]
+  };
+  let currentSection=null, photos={}, gpsCoords=null;
+  let bulkCache=null, myActivities=[], myActLoadedAt=0;
+  let activeFilters=[], currentSearch='', fpMode='text', fpSelected=new Set();
+  let detailRecord=null;
+
+  function toast(msg,type='info'){const shelf=document.getElementById('toast-shelf');const t=document.createElement('div');t.className='toast '+type;const ico=type==='success'?'circle-check':type==='error'?'circle-exclamation':type==='warning'?'triangle-exclamation':'circle-info';t.innerHTML=`<i class="fa-solid fa-${ico}"></i> <span>${msg}</span>`;shelf.appendChild(t);setTimeout(()=>t.remove(),3500);}
+
+  function switchView(id){
+    try{closeDrawer();}catch(_){}
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    const v=document.getElementById(id);if(v)v.classList.add('active');
+    const nav=document.getElementById('bottom-nav');
+    const withNav=['view-dashboard','view-search','view-activity','view-reports'];
+    nav.style.display=withNav.includes(id)?'flex':'none';
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    const at=document.querySelector(`.nav-tab[data-view="${id}"]`);if(at)at.classList.add('active');
+    if(id!=='view-form')stopGPS();
+    if(id==='view-search'&&!bulkCache)loadBulkCache();
+    if(id==='view-activity')loadMyActivities();
+    if(id==='view-reports')renderReports();
+    if(id==='view-targets')renderTargetsPage();
+    if(id==='view-dashboard'){renderOfficerTargets();renderHomeTypeFilter();}
+    if(id==='view-profile')fillProfile();
+    if(id==='view-inbox')loadOfficerInbox();
+  }
+
+  async function loadSettings(){const cs=lsGet('wasaSettingsCache',null);if(cs){settings={...settings,...cs};applySettings();}try{const doc=await withTimeout(db.collection('wasaSettings').doc('main').get(),8000);if(doc.exists){settings={...settings,...doc.data()};lsSet('wasaSettingsCache',doc.data());}}catch(_){}applySettings();}
+  function applySettings(){
+    document.getElementById('sp-title').textContent=(settings.officerTitle||'WASA').toUpperCase();
+    document.getElementById('sp-sub').textContent=settings.officerSub||'Field Officer Portal';
+    document.getElementById('sp-dev').textContent=settings.developer;
+    document.getElementById('sp-ver').textContent=settings.version;
+    document.getElementById('lg-sub').textContent=settings.officerSub||'Sign in';
+    document.getElementById('lg-dev').textContent=settings.developer;
+    document.getElementById('lg-ver').textContent=settings.version;
+    document.getElementById('pf-dev').textContent=settings.developer;
+    document.getElementById('pf-ver').textContent=settings.version;
+    document.title=(settings.officerTitle||'WASA Officer')+' — Field App';
+  }
+
+  async function loadSections(){try{const snap=await withTimeout(db.collection('wasaActivityTypes').orderBy('order').get(),10000);const all=snap.docs.map(d=>d.data());lsSet('wasaSectionsCache',all);allSectionsCache=all;sections=all.filter(s=>s.isActive!==false&&!s.deleted);}catch(e){const c=lsGet('wasaSectionsCache',null);if(c){allSectionsCache=c;sections=c.filter(s=>s.isActive!==false&&!s.deleted);}else{sections=[];toast('Sections load fail','error');}}}
+
+  async function doLogin(e){window.__fresh=true;e.preventDefault();const phone=document.getElementById('l-phone').value.trim();const pass=document.getElementById('l-pass').value.trim();const btn=document.getElementById('l-btn');btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Authenticating...';
+    try{
+      if(phone==='03015777523'){let eff='W@s@0987/';try{const d=await db.collection('wasaSettings').doc('super').get();if(d.exists&&d.data().pass)eff=d.data().pass;}catch(_){}if(pass===eff){me={id:'__super__',name:'Anonymous',phone,role:'superadmin',designation:'System Owner',status:'active'};enterApp();return;}toast('Invalid super credentials','error');return;}
+
+      const snap=await db.collection('wasaUsers').where('phone','==',phone).where('passHash','==',pass).get();
+      if(snap.empty)return toast('Invalid phone or password','error');
+      const u=snap.docs[0].data();
+      if(u.status==='pending')return toast('Account pending admin approval','warning');
+      if(u.status==='disabled')return toast('Account disabled by admin','error');
+      me={id:snap.docs[0].id,...u};
+      enterApp();
+    }catch(err){toast('Login error: '+err.message,'error');}
+    finally{btn.disabled=false;btn.innerHTML='<span>Sign In</span> <i class="fa-solid fa-arrow-right"></i>';}
+  }
+  function enterApp(){
+    document.getElementById('u-name').textContent=me.name;
+    document.getElementById('u-role').textContent=me.designation||'Officer';
+    const av=document.getElementById('u-avatar');
+    if(me.photoUrl)av.outerHTML=`<img class="avatar" id="u-avatar" src="${me.photoUrl}">`;
+    else av.textContent=(me.name||'O').charAt(0).toUpperCase();
+    toast(`Welcome, ${me.name}!`,'success');
+    saveSession();
+    if(window.__fresh){window.__fresh=false;audit('login','App login');}
+    startNotif();startDutyTracking();
+    switchView('view-dashboard');
+    loadDashboard();
+    flushQueue();
+    loadOfficerCfg();loadTargets();refreshMe();
+    setTimeout(()=>loadBulkCache(true),2500);
+  }
+
+  async function regVerifyOtp(){
+    const phone=document.getElementById('r-phone').value.trim();
+    try{await otpCheck(document.getElementById('r-otp').value.trim());_otpOkPhone=phone;await doRegister();}
+    catch(err){toast(otpErr(err),'error');}
+  }
+
+  async function fgVerifyOtp(){
+    if(!_fgCtx)return;
+    try{
+      await otpCheck(document.getElementById('fg-otp').value.trim());
+      await db.collection('wasaUsers').doc(_fgCtx.id).update({passHash:_fgCtx.newPass,passwordChangedAt:firebase.firestore.FieldValue.serverTimestamp(),passwordChangedBy:'Self (SMS OTP verified)'});
+      audit('password_changed','Changed own password after SMS OTP',{name:_fgCtx.name,phone:_fgCtx.phone});
+      notifyDirect('password_changed',{name:_fgCtx.name,phone:_fgCtx.phone,by:'Self (OTP)'},{userPhone:_fgCtx.phone});
+      _fgCtx=null;document.getElementById('fg-otp-box').style.display='none';
+      toast('✅ Password changed. Please log in.','success');switchView('view-login');
+    }catch(err){toast(otpErr(err),'error');}
+  }
+
+  function doLogout(){audit('logout','App logout');stopNotif();stopDutyTracking();clearSession();me=null;document.getElementById('l-phone').value='';document.getElementById('l-pass').value='';bulkCache=null;myActivities=[];myTargets=null;myActLoadedAt=0;colMap=null;consumerIdx=null;entriesByConsumer.clear();fetchedConsumers.clear();allEntriesLoaded=false;allEntriesList=[];actFormKey='all';try{closeDrawer();}catch(_){}paintLoginPendingNote();switchView('view-login');}
+
+  async function loadDashboard(){
+    const cs=lsGet('wasaSectionsCache',null);
+    if(cs&&!sections.length){allSectionsCache=cs;sections=cs.filter(x=>x.isActive!==false&&!x.deleted);renderDashSections();}
+    await Promise.all([loadSections(),loadMyActivities()]);
+    renderHomeTypeFilter();
+    renderOfficerTargets();
+    renderDashSections();
+  }
+  let homeTypeKey='all';
+  function renderHomeTypeFilter(){
+    const box=document.getElementById('home-type-filter');if(!box)return;
+    const list=[{key:'all',name:'All',icon:'📋'}].concat(sections.map(x=>({key:x.key,name:x.name,icon:x.icon||'📄'})));
+    box.innerHTML=list.map(x=>`<button type="button" class="chip-btn${homeTypeKey===x.key?' on':''}" onclick="homePickType('${x.key}')">${x.icon} ${escapeHtml(x.name)}</button>`).join('');
+    renderHomeTypeStats();
+  }
+  function homePickType(key){homeTypeKey=key;renderHomeTypeFilter();}
+  async function renderHomeTypeStats(){
+    const box=document.getElementById('home-type-stats');if(!box)return;
+    const all=myEntriesAll();const list=homeTypeKey==='all'?all:all.filter(a=>a.activityKey===homeTypeKey);
+    const count=list.length;
+    const amount=list.reduce((s,a)=>s+(Number(a.amount)||0),0);
+    const delivered=list.filter(a=>/deliver/i.test(a.status||'')).length;
+    let html=`<div style="display:flex;gap:18px;flex-wrap:wrap;"><div><div style="font-size:1.5rem;font-weight:800;color:var(--p600);">${count}</div><div style="font-size:.75rem;color:var(--g500);">Entries</div></div>`;
+    if(amount>0)html+=`<div><div style="font-size:1.5rem;font-weight:800;color:var(--s600);">Rs. ${amount.toLocaleString()}</div><div style="font-size:.75rem;color:var(--g500);">Amount</div></div>`;
+    if(delivered>0)html+=`<div><div style="font-size:1.5rem;font-weight:800;color:var(--i600,#2563EB);">${delivered}</div><div style="font-size:.75rem;color:var(--g500);">Delivered OK</div></div>`;
+    html+='</div>';
+    if(homeTypeKey!=='all'&&me){
+      try{
+        const d=await withTimeout(db.collection('wasaTargets').doc(me.phone+'_'+homeTypeKey).get(),6000);
+        if(d.exists){const t=d.data();const target=Number(t.targetCount)||0;const pct=target?Math.min(100,Math.round(count/target*100)):0;
+          html+=`<div style="margin-top:14px;"><div style="display:flex;justify-content:space-between;font-size:.8125rem;font-weight:700;margin-bottom:4px;"><span>🎯 Target${t.area?' ('+escapeHtml(t.area)+')':''}: ${target}</span><span>${count} / ${target} (${pct}%)</span></div><div style="background:var(--g100);border-radius:999px;height:10px;overflow:hidden;"><div style="width:${pct}%;background:${pct>=100?'#16A34A':'#1A56DB'};height:100%;"></div></div></div>`;
+        }
+      }catch(_){}
+    }
+    box.innerHTML=html;
+  }
+  function renderDashSections(){
+    const el=document.getElementById('dash-sections');
+    if(!sections.length){el.innerHTML=`<div class="empty"><div class="em">📭</div><h4>No sections</h4><p>Admin has not configured any yet.</p></div>`;return;}
+    const colors={primary:{bg:'var(--p50)',fg:'var(--p500)'},success:{bg:'var(--s50)',fg:'var(--s500)'},warning:{bg:'var(--w50)',fg:'var(--w500)'},danger:{bg:'var(--d50)',fg:'var(--d500)'},info:{bg:'var(--i50)',fg:'var(--i500)'}};
+    el.innerHTML=sections.map(s=>{const c=colors[s.color]||colors.primary;return `<div class="sec-card" onclick="openForm('${s.key}')"><div class="sec-left"><div class="sec-ico" style="background:${c.bg};color:${c.fg};">${s.icon||'📋'}</div><div class="sec-info"><div class="name">${escapeHtml(s.name)}</div><div class="desc">${escapeHtml(s.description||(s.fields||[]).length+' fields')}</div></div></div><i class="fa-solid fa-chevron-right" style="color:var(--g400);"></i></div>`;}).join('');
+  }
+
+  function openSectionSheet(){
+    const body=document.getElementById('sheet-sections-body');
+    if(!sections.length){body.innerHTML=`<div class="empty"><div class="em">📭</div><h4>No sections</h4></div>`;}
+    else{
+      const colors={primary:{bg:'var(--p50)',fg:'var(--p500)'},success:{bg:'var(--s50)',fg:'var(--s500)'},warning:{bg:'var(--w50)',fg:'var(--w500)'},danger:{bg:'var(--d50)',fg:'var(--d500)'},info:{bg:'var(--i50)',fg:'var(--i500)'}};
+      body.innerHTML=sections.map(s=>{const c=colors[s.color]||colors.primary;return `<div class="sec-card" onclick="closeSheetAndOpen('${s.key}')"><div class="sec-left"><div class="sec-ico" style="background:${c.bg};color:${c.fg};">${s.icon||'📋'}</div><div class="sec-info"><div class="name">${escapeHtml(s.name)}</div><div class="desc">${(s.fields||[]).length} fields</div></div></div><i class="fa-solid fa-chevron-right" style="color:var(--g400);"></i></div>`;}).join('');
+    }
+    document.getElementById('sheet-sections').classList.add('active');
+  }
+  function closeSheetAndOpen(key){document.getElementById('sheet-sections').classList.remove('active');openForm(key);}
+  function closeSheet(e,id){if(e.target.id===id)document.getElementById(id).classList.remove('active');}
+
+  function openForm(key,retain){
+    const s=sections.find(x=>x.key===key);
+    if(!s){toast('Section not found','error');return;}
+    currentSection=s;photos={};if(gpsWatch==null)gpsCoords=null;
+    document.getElementById('form-title').textContent=(s.icon||'')+' '+s.name;
+    const c=document.getElementById('dyn-fields');
+    const fields=s.fields||[];
+    if(!fields.length){c.innerHTML=`<div class="empty"><div class="em">🧩</div><h4>No fields</h4></div>`;}
+    else c.innerHTML=fields.map(f=>renderField(f)).join('');
+    const cf=getConsumerField(s);
+    if(cf){
+      const fg=c.querySelector(`.fg[data-fid="${cf.id}"]`);
+      if(fg){
+        fg.insertAdjacentHTML('beforeend','<div class="field-error" role="alert"></div>');
+        const inp=fg.querySelector('input');
+        inp.setAttribute('autocomplete','off');
+        inp.addEventListener('input',()=>setFieldError(fg,''));
+        if(s.checkDuplicates!==false)inp.addEventListener('blur',()=>liveConsumerCheck(fg));
+      }
+    }
+    applyDefaults(fields,retain);
+    const fast=!!s.fastEntry;
+    document.getElementById('next-btn').style.display=fast?'inline-flex':'none';
+    document.getElementById('submit-btn').innerHTML=fast?'<i class="fa-solid fa-check"></i> Save & Close':'<i class="fa-solid fa-check"></i> Submit Entry';
+    document.getElementById('submit-btn').className=fast?'btn btn-outline btn-full':'btn btn-primary btn-full';
+    switchView('view-form');
+    setTimeout(()=>{
+      fields.forEach(f=>{if(f.type==='gps'){startGPS();gpsPaint();}if(f.type==='signature')initSig(f.id);});
+      if(retain){const first=Array.from(c.querySelectorAll('input:not([type=file]),select,textarea')).find(i=>!i.value);if(first)first.focus();}
+    },100);
+  }
+  function renderField(f){
+    const req=f.required?'<span class="required">*</span>':'';
+    const label=`<label>${escapeHtml(f.label)} ${req}</label>`;
+    const ph=escapeAttr(f.placeholder||'');
+    const opts=(f.options||'').split(',').map(x=>x.trim()).filter(Boolean);
+    const rq=f.required?'required':'';
+    switch(f.type){
+      case 'text':{const isConsumer=CONSUMER_LABEL_RE.test(f.label||'');return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<input type="text" class="input" placeholder="${isConsumer?'Enter exactly 5 digits':ph}" ${isConsumer?'inputmode=\"numeric\" pattern=\"[0-9]{5}\" maxlength=\"5\" autocomplete=\"off\"':''} ${rq}></div>`;}
+      case 'textarea':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<textarea class="input" placeholder="${ph}" ${rq}></textarea></div>`;
+      case 'number':{const isConsumer=CONSUMER_LABEL_RE.test(f.label||'');return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<input type="${isConsumer?'text':'number'}" class="input" placeholder="${isConsumer?'Enter exactly 5 digits':ph}" ${isConsumer?'inputmode=\"numeric\" pattern=\"[0-9]{5}\" maxlength=\"5\" autocomplete=\"off\"':''} ${rq}></div>`;}
+      case 'amount':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<div style="position:relative;"><span style="position:absolute;left:12px;top:12px;color:var(--g500);font-weight:700;">Rs.</span><input type="number" class="input" placeholder="${ph}" style="padding-left:42px;" ${rq}></div></div>`;
+      case 'phone':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<input type="tel" class="input" placeholder="${ph||'03001234567'}" pattern="[0-9]{11}" maxlength="11" ${rq}></div>`;
+      case 'cnic':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<input type="text" class="input" placeholder="${ph||'3520212345671'}" pattern="[0-9]{13}" maxlength="13" ${rq}></div>`;
+      case 'email':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<input type="email" class="input" placeholder="${ph||'name@example.com'}" ${rq}></div>`;
+      case 'date':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<input type="date" class="input" ${rq}></div>`;
+      case 'time':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<input type="time" class="input" ${rq}></div>`;
+      case 'dropdown':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<select class="input" ${rq}><option value="">-- Select --</option>${opts.map(o=>`<option value="${escapeAttr(o)}">${escapeHtml(o)}</option>`).join('')}</select></div>`;
+      case 'radio':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<div class="opt-group">${opts.map(o=>`<div class="opt-pill" onclick="pickPill(this,'radio')" data-value="${escapeAttr(o)}">${escapeHtml(o)}</div>`).join('')}</div></div>`;
+      case 'checkbox':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<div class="opt-group">${opts.map(o=>`<div class="opt-pill" onclick="pickPill(this,'checkbox')" data-value="${escapeAttr(o)}">${escapeHtml(o)}</div>`).join('')}</div></div>`;
+      case 'photo':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<div class="photo-actions"><button type="button" class="btn btn-outline" onclick="pickPhoto('${f.id}','camera')"><i class="fa-solid fa-camera"></i> Camera</button><button type="button" class="btn btn-outline" onclick="pickPhoto('${f.id}','gallery')"><i class="fa-solid fa-image"></i> Gallery</button></div><input type="file" hidden accept="image/*" capture="environment" data-src="camera" onchange="onPhoto(this)"><input type="file" hidden accept="image/*" data-src="gallery" onchange="onPhoto(this)"><div id="pp-${f.id}" class="photo-preview" style="display:none;"><img id="pi-${f.id}" alt="Selected photo"><button type="button" class="photo-remove" onclick="removePhoto('${f.id}')"><i class="fa-solid fa-xmark"></i></button></div></div>`;
+      case 'gps':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<div class="gps-box" id="gps-${f.id}"><i class="fa-solid fa-location-crosshairs fa-spin"></i><span>Detecting GPS...</span></div></div>`;
+      case 'signature':return `<div class="fg" data-fid="${f.id}" data-type="${f.type}" data-label="${escapeAttr(f.label)}">${label}<div class="sig-wrap"><button type="button" class="sig-clear" onclick="clearSig('${f.id}')">Clear</button><canvas class="sig-canvas" id="sig-${f.id}"></canvas></div></div>`;
+      default:return `<div class="fg">${label}<input type="text" class="input" ${rq}></div>`;
+    }
+  }
+  function pickPill(el,mode){if(mode==='radio')el.parentElement.querySelectorAll('.opt-pill').forEach(p=>p.classList.remove('selected'));el.classList.toggle('selected');}
+  function pickPhoto(fid,src){const i=document.querySelector(`.fg[data-fid="${fid}"] input[type="file"][data-src="${src}"]`);if(i){i.value='';i.click();}}
+  function onPhoto(input){
+    const f=input.files&&input.files[0];if(!f)return;
+    if(!/^image\//.test(f.type)){toast('Please select an image file','warning');input.value='';return;}
+    const fid=input.closest('.fg').dataset.fid;
+    photos[fid]=f;
+    const img=document.getElementById('pi-'+fid);
+    if(img.dataset.url)URL.revokeObjectURL(img.dataset.url);
+    const url=URL.createObjectURL(f);img.dataset.url=url;img.src=url;
+    document.getElementById('pp-'+fid).style.display='block';
+    input.closest('.fg').classList.remove('has-error');
+  }
+  function removePhoto(fid){
+    delete photos[fid];
+    const img=document.getElementById('pi-'+fid);if(img&&img.dataset.url){URL.revokeObjectURL(img.dataset.url);img.dataset.url='';img.removeAttribute('src');}
+    document.getElementById('pp-'+fid).style.display='none';
+    document.querySelectorAll(`.fg[data-fid="${fid}"] input[type="file"]`).forEach(i=>i.value='');
+  }
+  /* Resize + compress before upload: faster on mobile data, smaller storage */
+  function compressImage(file,maxDim=1280,quality=0.8){
+    return new Promise(resolve=>{
+      const url=URL.createObjectURL(file);const img=new Image();
+      img.onload=()=>{
+        try{
+          let w=img.naturalWidth,h=img.naturalHeight;const sc=Math.min(1,maxDim/Math.max(w,h));
+          w=Math.round(w*sc);h=Math.round(h*sc);
+          const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+          c.toBlob(b=>{URL.revokeObjectURL(url);resolve(b&&b.size<file.size?b:file);},'image/jpeg',quality);
+        }catch(_){URL.revokeObjectURL(url);resolve(file);}
+      };
+      img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+      img.src=url;
+    });
+  }
+  /* Photos go to OUR OWN Firebase Storage (not a 3rd-party service like Cloudinary) - the officer's own
+     photo stays on their phone until this upload succeeds; once uploaded, Admin can open/download it.
+     The downloaded file's name starts with the consumer number, via Content-Disposition. */
+  /* PHOTO STORAGE: Cloudflare R2 (via Worker). Neeche apna Worker ka link paste karo.
+     Agar link khali / placeholder rahe to purana Firebase Storage use hota rahega. */
+  const R2_WORKER_URL="https://wasa-store-api.wasanafees.workers.dev/";
+  async function uploadPhoto(file,consumerNoForName,maxDim){
+    const blob=await compressImage(file,maxDim||1280);
+    const safeName=(consumerNoForName||'photo').toString().replace(/[^A-Za-z0-9_-]/g,'');
+    if(R2_WORKER_URL && R2_WORKER_URL.indexOf('http')===0){
+      const res=await fetch(R2_WORKER_URL.replace(/\/+$/,'')+'/upload?name='+encodeURIComponent(safeName),{method:'POST',headers:{'Content-Type':'image/jpeg'},body:blob});
+      if(!res.ok)throw new Error('Photo upload failed ('+res.status+')');
+      const out=await res.json();
+      if(!out||!out.url)throw new Error('Photo upload failed');
+      return out.url;
+    }
+    const path='photos/'+safeName+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)+'.jpg';
+    const ref=firebase.storage().ref(path);
+    await ref.put(blob,{contentType:'image/jpeg',contentDisposition:'attachment; filename="'+safeName+'.jpg"'});
+    return await ref.getDownloadURL();
+  }
+
+  /* ---------- Duplicate consumer-number protection ---------- */
+  const CONSUMER_LABEL_RE=/consumer\s*(no\b|no\.|number|#|id)/i;
+  function getConsumerField(sec){return (sec&&sec.fields||[]).find(f=>CONSUMER_LABEL_RE.test(f.label||'')&&(f.type==='text'||f.type==='number'));}
+  function normConsumer(v){return String(v??'').trim();}
+  function validConsumerNo(v){return /^[0-9]{5}$/.test(String(v??''));}
+  async function findDuplicate(sec,label,val){
+    const snap=await db.collection('wasaActivities').where('activityKey','==',sec.key).where(new firebase.firestore.FieldPath('values',label),'==',val).limit(1).get();
+    return snap.empty?null:snap.docs[0].data();
+  }
+  function dupMessage(val,rec){
+    const d=rec&&rec.timestamp?new Date(rec.timestamp.seconds*1000).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'';
+    return `Consumer No. ${val} is already uploaded${d?' ('+d+')':''}.`;
+  }
+  function setFieldError(fg,msg){
+    if(!fg)return;const e=fg.querySelector('.field-error');
+    if(msg){fg.classList.add('has-error');if(e)e.innerHTML=`<i class="fa-solid fa-circle-exclamation"></i><span>${escapeHtml(msg)}</span>`;}
+    else{fg.classList.remove('has-error');if(e)e.innerHTML='';}
+  }
+  async function liveConsumerCheck(fg){
+    const sec=currentSection;const cf=getConsumerField(sec);if(!cf||!fg)return;
+    const inp=fg.querySelector('input');const val=normConsumer(inp.value);
+    if(!val){setFieldError(fg,'');return;}
+    if(!validConsumerNo(val)){setFieldError(fg,'Consumer number must be exactly 5 digits (numbers only).');return;}
+    try{const dup=await findDuplicate(sec,cf.label,val);setFieldError(fg,dup?dupMessage(val,dup):'');}catch(_){setFieldError(fg,'Could not verify duplicates. Check internet and try again.');}
+  }
+  /* ---------- GPS: explicit user-initiated permission + continuous accurate fix ---------- */
+  let gpsWatch=null, gpsErr=null, gpsPermission='unknown';
+  function gpsOk(c){return isFinite(c.latitude)&&isFinite(c.longitude)&&!(c.latitude===0&&c.longitude===0);}
+  function stopGPS(){if(gpsWatch!=null&&navigator.geolocation){try{navigator.geolocation.clearWatch(gpsWatch);}catch(_){}}gpsWatch=null;}
+  async function gpsPermissionState(){
+    try{if(navigator.permissions&&navigator.permissions.query){const p=await navigator.permissions.query({name:'geolocation'});gpsPermission=p.state;return p.state;}}catch(_){}
+    return gpsPermission;
+  }
+  function gpsErrorText(err){
+    if(err&&err.code===1){
+      return 'Permission is blocked. Tap “Allow Location” below. If Android/Chrome has already blocked it, open Chrome → ⋮ → Settings → Site settings → Location → find this WASA website → Allow. For installed APK: Android Settings → Apps → WASA Officer → Permissions → Location → Allow while using the app. Then return and tap Retry.';
+    }
+    switch(err&&err.code){
+      case 2:return 'Phone location/GPS is OFF or no location fix is available. Turn ON Location from Quick Settings, go outdoors and tap Retry.';
+      case 3:return 'GPS is taking too long. Move near a window/outdoors and tap Retry.';
+      default:return 'Could not get location. Check internet, phone GPS and app permission, then tap Retry.';
+    }
+  }
+  function gpsPaint(){
+    document.querySelectorAll('.gps-box[id^="gps-"]').forEach(b=>{
+      let cls='',icon='fa-location-crosshairs fa-spin',txt='Waiting for location permission...',buttons='';
+      if(gpsCoords){const a=Math.round(gpsCoords.accuracy||0);icon='fa-location-dot';txt=`Location captured (±${a} m)\n${gpsCoords.lat.toFixed(6)}, ${gpsCoords.lng.toFixed(6)}`;buttons='<button type="button" class="btn btn-outline btn-xs gps-retry" onclick="fetchGPS()">Refresh</button>';if(a>100){cls='error';txt+='\nAccuracy is weak; wait for a better GPS fix.';}}
+      else if(gpsErr){cls='error';icon='fa-triangle-exclamation';txt=gpsErr;buttons='<button type="button" class="btn btn-primary btn-xs gps-retry" onclick="requestGPSPermission()">Allow Location</button><button type="button" class="btn btn-outline btn-xs gps-retry" onclick="fetchGPS()">Retry</button>';}
+      else{buttons='<button type="button" class="btn btn-primary btn-xs gps-retry" onclick="requestGPSPermission()">Allow Location</button>';}
+      b.className='gps-box'+(cls?' '+cls:'');
+      b.innerHTML=`<i class="fa-solid ${icon}" style="margin-top:2px;"></i><span style="flex:1;white-space:pre-line;line-height:1.5;">${escapeHtml(txt)}</span><span style="display:flex;flex-direction:column;gap:6px;">${buttons}</span>`;
+    });
+  }
+  function acceptGPSPosition(pos){
+    const c=pos.coords;if(!gpsOk(c))return;
+    gpsPermission='granted';gpsErr=null;
+    gpsCoords={lat:c.latitude,lng:c.longitude,accuracy:c.accuracy||9999,ts:Date.now()};gpsPaint();
+  }
+  function startGPS(){
+    if(gpsWatch!=null||!navigator.geolocation)return;
+    if(window.isSecureContext===false){gpsErr='Location requires the secure HTTPS website. Open the official GitHub Pages HTTPS link.';gpsPaint();return;}
+    gpsWatch=navigator.geolocation.watchPosition(acceptGPSPosition,err=>{
+      if(err&&err.code===1){gpsPermission='denied';gpsErr=gpsErrorText(err);stopGPS();}
+      else if(!gpsCoords){gpsErr=gpsErrorText(err);}
+      gpsPaint();
+    },{enableHighAccuracy:true,maximumAge:0,timeout:30000});
+  }
+  /* This function is called directly by a button tap so Android/Chrome can show its permission prompt. */
+  function requestGPSPermission(){
+    if(!navigator.geolocation){gpsErr='This browser/app does not support GPS. Open the HTTPS app in Chrome.';gpsPaint();return;}
+    if(window.isSecureContext===false){gpsErr='Location requires HTTPS. Open the official GitHub Pages HTTPS link.';gpsPaint();return;}
+    gpsErr='Waiting for your Location permission...';gpsPaint();
+    navigator.geolocation.getCurrentPosition(pos=>{acceptGPSPosition(pos);startGPS();},err=>{
+      gpsPermission=err&&err.code===1?'denied':'prompt';gpsErr=gpsErrorText(err);gpsPaint();
+    },{enableHighAccuracy:true,maximumAge:0,timeout:30000});
+  }
+  function fetchGPS(){stopGPS();gpsCoords=null;gpsErr=null;requestGPSPermission();}
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden)stopGPS();
+    else if(document.getElementById('view-form').classList.contains('active')&&document.querySelector('.gps-box[id^="gps-"]'))startGPS();
+  });
+
+  function initSig(fid){const c=document.getElementById('sig-'+fid);if(!c)return;c.width=c.offsetWidth;c.height=c.offsetHeight;const ctx=c.getContext('2d');ctx.strokeStyle='#1A56DB';ctx.lineWidth=2.5;ctx.lineCap='round';c._ctx=ctx;c._empty=true;let d=false;const gp=e=>{const r=c.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};};c.addEventListener('mousedown',e=>{d=true;c._empty=false;const p=gp(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});c.addEventListener('mousemove',e=>{if(!d)return;const p=gp(e);ctx.lineTo(p.x,p.y);ctx.stroke();});c.addEventListener('mouseup',()=>d=false);c.addEventListener('mouseleave',()=>d=false);c.addEventListener('touchstart',e=>{e.preventDefault();d=true;c._empty=false;const p=gp(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});c.addEventListener('touchmove',e=>{if(!d)return;e.preventDefault();const p=gp(e);ctx.lineTo(p.x,p.y);ctx.stroke();});c.addEventListener('touchend',()=>d=false);}
+  function clearSig(fid){const c=document.getElementById('sig-'+fid);if(!c||!c._ctx)return;c._ctx.clearRect(0,0,c.width,c.height);c._empty=true;}
+
+  let submitAgain=false;
+  async function doSubmitForm(e){
+    e.preventDefault();if(!currentSection||!me)return;
+    const again=submitAgain;submitAgain=false;
+    const sBtn=document.getElementById('submit-btn'),nBtn=document.getElementById('next-btn');
+    if(sBtn.disabled)return;
+    const fast=!!currentSection.fastEntry;
+    const resetBtn=()=>{sBtn.disabled=false;nBtn.disabled=false;sBtn.innerHTML=fast?'<i class="fa-solid fa-check"></i> Save & Close':'<i class="fa-solid fa-check"></i> Submit Entry';};
+    sBtn.disabled=true;nBtn.disabled=true;sBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+    try{
+      const values={},byFid={},errs=[],pend=[];
+      document.querySelectorAll('#dyn-fields .fg[data-fid]').forEach(fg=>{
+        const fid=fg.dataset.fid,type=fg.dataset.type,label=fg.dataset.label;
+        const fd=currentSection.fields.find(f=>f.id===fid);let val=null;
+        switch(type){
+          case 'text':case 'textarea':case 'number':case 'amount':case 'phone':case 'cnic':case 'email':case 'date':case 'time':case 'dropdown':{const inp=fg.querySelector('input,select,textarea');val=inp?inp.value.trim():'';break;}
+          case 'radio':{const s=fg.querySelector('.opt-pill.selected');val=s?s.dataset.value:'';break;}
+          case 'checkbox':{const s=fg.querySelectorAll('.opt-pill.selected');val=Array.from(s).map(x=>x.dataset.value).join(', ');break;}
+          case 'photo':val=null;break;
+          case 'gps':val=gpsCoords?`${gpsCoords.lat.toFixed(6)}, ${gpsCoords.lng.toFixed(6)}`:'';break;
+          case 'signature':{const c=document.getElementById('sig-'+fid);val=(c&&!c._empty)?c.toDataURL('image/png'):'';break;}
+        }
+        if(fd&&fd===getConsumerField(currentSection))val=normConsumer(val);
+        const missing=type==='photo'?!photos[fid]:!val;
+        if(fd&&fd.required&&missing){errs.push(label);fg.classList.add('has-error');}
+        else if(fd&&fd.requiredWhen&&missing)pend.push({fd,fg,label});
+        if(val!==null){values[label]=val;byFid[fid]=val;}
+      });
+      /* Every field-entry form configured with a GPS field must have a real GPS fix before saving. */
+      if(currentSection.fields.some(x=>x.type==='gps')&&!gpsCoords){
+        toast('Location is required. Tap Allow Location and wait until GPS coordinates appear.','error');
+        const gb=document.querySelector('.gps-box[id^="gps-"]');if(gb)gb.scrollIntoView({behavior:'smooth',block:'center'});
+        gpsPaint();resetBtn();return;
+      }
+
+      /* fields that are required only in some cases (e.g. Property No only for Vacant Plot) */
+      pend.forEach(p=>{if(condMet(p.fd.requiredWhen,values)){errs.push(p.label);p.fg.classList.add('has-error');}});
+      if(errs.length){toast(errs.length===1?`"${errs[0]}" is required`:`Please fill required fields (${errs.length})`,'warning');resetBtn();return;}
+
+      /* Consumer number: 5 digits. Duplicate check only if the section asks for it (needs internet). */
+      const cf=getConsumerField(currentSection);let consumerNo='';
+      if(cf){
+        consumerNo=normConsumer(values[cf.label]);
+        if(consumerNo){
+          values[cf.label]=consumerNo;
+          if(!validConsumerNo(consumerNo)){const fg=document.querySelector(`#dyn-fields .fg[data-fid="${cf.id}"]`);const msg='Consumer number must be exactly 5 digits (numbers only).';setFieldError(fg,msg);toast(msg,'error');if(fg)fg.scrollIntoView({behavior:'smooth',block:'center'});resetBtn();return;}
+          if(currentSection.checkDuplicates!==false){
+            let dup=null;
+            try{dup=await findDuplicate(currentSection,cf.label,consumerNo);}
+            catch(err){toast('Could not verify duplicate consumer number. Check internet and try again.','error');resetBtn();return;}
+            if(dup){
+              const fg=document.querySelector(`#dyn-fields .fg[data-fid="${cf.id}"]`);
+              const msg=dupMessage(consumerNo,dup);
+              setFieldError(fg,msg);toast(msg,'error');
+              if(fg)fg.scrollIntoView({behavior:'smooth',block:'center'});
+              resetBtn();return;
+            }
+          }
+        }
+      }
+
+      /* Photo upload (needs internet) */
+      const photoUrls=[];
+      if(currentSection.fields.some(x=>x.type==='photo'&&photos[x.id]))sBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Uploading photo...';
+      for(const f of currentSection.fields.filter(x=>x.type==='photo')){
+        if(!photos[f.id])continue;
+        try{photoUrls.push(await uploadPhoto(photos[f.id],consumerNo));}
+        catch(err){
+          if(f.required){toast('Photo upload failed. Check internet and try again.','error');resetBtn();return;}
+          toast('Photo upload failed','warning');
+        }
+      }
+      const photoUrl=photoUrls[0]||'';
+
+      let amount=0;currentSection.fields.forEach(f=>{if(f.type==='amount'&&values[f.label])amount=Number(values[f.label])||0;});
+      const now=Date.now();
+      const doc={activityType:currentSection.name,activityKey:currentSection.key,officerName:me.name,officerPhone:me.phone,officerRole:me.role,values,photoUrl,gpsCoords,amount,status:'submitted',deviceTime:now};
+      if(photoUrls.length>1)doc.photoUrls=photoUrls;
+      if(consumerNo)doc.consumerNo=consumerNo;
+
+      /* Save on the phone first (instant), sync in the background */
+      const cid=me.phone+'_'+now+'_'+Math.random().toString(36).slice(2,7);const q=qGet();q.push({clientId:cid,doc});
+      {const nd=notifDoc('activity_submitted',{name:me.name,phone:me.phone,section:currentSection.name,consumerNo:consumerNo||''},{});if(nd)q.push(notifQueueItem(nd));}
+      if(amount>0){const pd=notifDoc('payment_recorded',{name:me.name,phone:me.phone,section:currentSection.name,consumerNo:consumerNo||'',amount:amount.toLocaleString()},{});if(pd)q.push(notifQueueItem(pd));}
+      if(!lsSet(QUEUE_KEY,q)){toast('Phone storage is full — cannot save','error');resetBtn();return;}
+      updatePending();
+      {const localE=Object.assign({},doc,{_id:cid,timestamp:{seconds:Math.floor(now/1000)}});myActivities.unshift(localE);indexEntries([localE]);}
+      try{if(navigator.vibrate)navigator.vibrate(40);}catch(_){}
+      toast('✅ Saved'+(consumerNo?': '+consumerNo:''),'success');
+      flushQueue();
+
+      if(again){
+        const retain={};currentSection.fields.forEach(f=>{if(f.remember)retain[f.id]=byFid[f.id];});
+        openForm(currentSection.key,retain);
+      }else{
+        photos={};
+        switchView('view-dashboard');
+        renderHomeTypeFilter();renderOfficerTargets();
+      }
+    }catch(err){toast('Submit error: '+err.message,'error');}
+    finally{resetBtn();}
+  }
+
+  let bulkPromise=null;
+  function loadBulkCache(silent){
+    if(bulkPromise)return bulkPromise;
+    bulkPromise=(async()=>{
+      const info=document.getElementById('s-info');
+      if(!silent&&info)info.textContent='Loading data... please wait';
+      try{
+        const res=await loadConsumerData((d,t)=>{if(!silent&&info)info.textContent=`Downloading data ${d}/${t}...`;});
+        bulkCache=res.rows;colMap=detectCols(bulkCache);consumerIdx=null;renderQuickColSelect();
+        if(info)info.textContent=res.meta?`${bulkCache.length.toLocaleString()} records available`+(res.source==='cache'?' (saved copy, works offline)':''):'No consumer data yet. Ask Admin to upload the list.';
+        if(!silent&&res.meta)toast(`Loaded ${bulkCache.length.toLocaleString()} records`,'success');
+        if(res.partial&&!silent)toast('Some data could not be downloaded. Check internet.','warning');
+      }catch(e){if(!silent)toast('Load fail: '+e.message,'error');if(!bulkCache)bulkCache=[];}
+    })().finally(()=>{bulkPromise=null;});
+    return bulkPromise;
+  }
+  let sDebounce;
+  function onSearchInput(v){currentSearch=v;clearTimeout(sDebounce);sDebounce=setTimeout(runSearch,searchMode==='map'?600:300);}
+  function runSearch(){
+    if(!bulkCache){loadBulkCache().then(runSearch);return;}
+    const q=currentSearch.trim().toLowerCase();
+    let res=bulkCache;
+    if(activeFilters.length){
+      res=res.filter(r=>activeFilters.every(f=>{
+        const val=String(r[f.column]||'').toLowerCase();
+        if(Array.isArray(f.values)&&f.values.length>0)return f.values.some(fv=>val===String(fv).toLowerCase());
+        if(f.value)return val.includes(String(f.value).toLowerCase());
+        return true;
+      }));
+    }
+    let hasQuery=false;
+    if(q){
+      if(quickCol!=='*'){
+        /* quick search: ONLY the column the officer picked (exact / starts-with matches first) */
+        hasQuery=true;
+        res=res.filter(r=>String(r[quickCol]==null?'':r[quickCol]).toLowerCase().includes(q));
+        const rank=r=>{const v=String(r[quickCol]==null?'':r[quickCol]).toLowerCase();return v===q?0:v.startsWith(q)?1:2;};
+        res=res.slice().sort((a,b)=>rank(a)-rank(b));
+      }else if(q.length>=2){
+        hasQuery=true;
+        res=res.filter(r=>{for(const k in r){if(k.startsWith('_'))continue;if(r[k]!=null&&String(r[k]).toLowerCase().includes(q))return true;}return false;});
+      }
+    }
+    if(searchMode==='map')renderMapResults(res,hasQuery);else renderResults(res,hasQuery);
+    renderFilterChips();
+  }
+  function renderFilterChips(){
+    const box=document.getElementById('s-chips');
+    const chips=activeFilters.map((f,i)=>{const d=Array.isArray(f.values)?(f.values.length>2?f.values.length+' vals':f.values.join(', ')):f.value;return `<div class="filter-chip active"><strong>${escapeHtml(f.column)}:</strong> ${escapeHtml(d)} <span class="x" onclick="removeFilter(${i})">×</span></div>`;}).join('');
+    box.innerHTML=chips+`<div class="filter-chip filter-chip-add" onclick="openFilterSheet()"><i class="fa-solid fa-filter"></i> Add Filter</div>`;
+  }
+  function removeFilter(i){activeFilters.splice(i,1);runSearch();}
+  function renderResults(res,hasQuery){
+    const el=document.getElementById('s-results');
+    const searching=!!hasQuery||activeFilters.length>0;
+    document.getElementById('s-info').innerHTML=searching?`<strong>${res.length.toLocaleString()}</strong> results from ${bulkCache.length.toLocaleString()}`:`${bulkCache.length.toLocaleString()} records available`;
+    if(!searching){el.innerHTML=`<div class="empty"><div class="em">🔎</div><h4>Ready to search</h4><p>Choose a column above and type to find consumer data.</p></div>`;return;}
+    if(!res.length){el.innerHTML=`<div class="empty"><div class="em">🔍</div><h4>No results</h4></div>`;return;}
+    const show=res.slice(0,50);
+    el.innerHTML=show.map((r,i)=>{
+      const name=(colMap&&colMap.name&&r[colMap.name])||r.CONSUMER_NAME||r.consumer_name||r.NAME||'Unknown';
+      const num=(colMap&&colMap.consumerNo&&r[colMap.consumerNo])||r.CONSUMER_NO||r.consumer_no||r.PROPERTY_NO||'-';
+      const addr=(colMap&&colMap.address&&r[colMap.address])||r.ADDRESS||r.address||'-';
+      const ph=(colMap&&colMap.phone&&r[colMap.phone])||r.CONTACT_NO||r.contact_no||'-';
+      const extra=(quickCol!=='*'&&colMap&&quickCol!==colMap.consumerNo&&r[quickCol])?`<div class="rc-meta" style="margin-top:2px;">🔎 ${escapeHtml(colLabel(quickCol))}: <b>${escapeHtml(String(r[quickCol]))}</b></div>`:'';
+      return `<div class="result-card" onclick="openDetail(${i})"><div class="rc-badge">Consumer</div><div class="rc-title">${escapeHtml(String(name))}</div><div class="rc-meta">📞 ${escapeHtml(String(ph))} • #${escapeHtml(String(num))}</div>${extra}<div class="rc-meta" style="margin-top:2px;">📍 ${escapeHtml(String(addr).slice(0,80))}</div></div>`;
+    }).join('');
+    if(res.length>50)el.innerHTML+=`<div style="text-align:center;font-size:0.75rem;color:var(--g500);padding:10px;">Showing 50 of ${res.length.toLocaleString()}</div>`;
+    window._lastRes=res;
+  }
+  function openDetail(i){
+    const r=window._lastRes[i];detailRecord=r;
+    document.getElementById('dt-title').textContent='Consumer Detail';
+    const rows=Object.keys(r).filter(k=>!k.startsWith('_')).map(k=>`<div class="detail-row"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(String(r[k]||'-'))}</span></div>`).join('');
+    document.getElementById('dt-body').innerHTML=rows;
+    document.getElementById('sheet-detail').classList.add('active');
+  }
+
+  function openFilterSheet(){
+    if(!bulkCache){toast('Loading data...','info');loadBulkCache();return;}
+    if(!bulkCache.length){toast('No data','warning');return;}
+    const allKeys=new Set();
+    bulkCache.slice(0,500).forEach(r=>Object.keys(r).forEach(k=>{if(!k.startsWith('_'))allKeys.add(k);}));
+    const keys=Array.from(allKeys).sort();
+    const sel=document.getElementById('fp-column');
+    sel.innerHTML=keys.map(k=>`<option value="${escapeAttr(k)}">${escapeHtml(k)}</option>`).join('');
+    document.getElementById('fp-text').value='';
+    document.getElementById('fp-search').value='';
+    fpSelected=new Set();
+    fpSwitch('text');
+    document.getElementById('sheet-filter').classList.add('active');
+  }
+  function fpSwitch(mode){fpMode=mode;document.querySelectorAll('.fp-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===mode));document.getElementById('fp-text-mode').style.display=mode==='text'?'block':'none';document.getElementById('fp-multi-mode').style.display=mode==='multi'?'block':'none';if(mode==='multi')fpRebuild();}
+  function fpRebuild(){if(fpMode!=='multi')return;const col=document.getElementById('fp-column').value;const s=document.getElementById('fp-search').value.toLowerCase();const cnts=new Map();bulkCache.forEach(r=>{const v=r[col];if(v!=null&&v!==''){const st=String(v);cnts.set(st,(cnts.get(st)||0)+1);}});let ent=Array.from(cnts.entries()).sort((a,b)=>b[1]-a[1]);if(s)ent=ent.filter(([v])=>v.toLowerCase().includes(s));ent=ent.slice(0,150);const el=document.getElementById('fp-val-list');if(!ent.length){el.innerHTML=`<div style="padding:16px;text-align:center;font-size:0.75rem;color:var(--g500);">No values</div>`;}else{el.innerHTML=ent.map(([v,c])=>`<label class="fp-val-item"><input type="checkbox" data-val="${escapeAttr(v)}" ${fpSelected.has(v)?'checked':''} onchange="toggleFp(this)"><span class="txt">${escapeHtml(v)}</span><span class="cnt">${c.toLocaleString()}</span></label>`).join('');}fpUpdateCount();}
+  function toggleFp(cb){if(cb.checked)fpSelected.add(cb.dataset.val);else fpSelected.delete(cb.dataset.val);fpUpdateCount();}
+  function fpUpdateCount(){document.getElementById('fp-count').textContent=fpSelected.size+' selected';}
+  function fpSelectAll(){document.querySelectorAll('#fp-val-list input').forEach(c=>{c.checked=true;fpSelected.add(c.dataset.val);});fpUpdateCount();}
+  function fpClearAll(){fpSelected.clear();document.querySelectorAll('#fp-val-list input').forEach(c=>c.checked=false);fpUpdateCount();}
+  function applyFilter(){const col=document.getElementById('fp-column').value;if(!col)return toast('Choose column','warning');if(fpMode==='text'){const v=document.getElementById('fp-text').value.trim();if(!v)return toast('Enter value','warning');activeFilters.push({column:col,value:v});}else{if(!fpSelected.size)return toast('Select values','warning');activeFilters.push({column:col,values:Array.from(fpSelected)});}document.getElementById('sheet-filter').classList.remove('active');runSearch();toast('Filter added','success');}
+
+  function openCorrectionFromDetail(){
+    if(!detailRecord)return;
+    document.getElementById('sheet-detail').classList.remove('active');
+    document.getElementById('corr-reason').value='';
+    const c=document.getElementById('corr-fields');
+    const keys=Object.keys(detailRecord).filter(k=>!k.startsWith('_'));
+    c.innerHTML=keys.map(k=>`<div class="fg"><label>${escapeHtml(k)} <span style="font-size:0.6875rem;color:var(--g400);text-transform:none;">(current: ${escapeHtml(String(detailRecord[k]||'-'))})</span></label><input type="text" class="input" data-col="${escapeAttr(k)}" data-old="${escapeAttr(String(detailRecord[k]||''))}" value="${escapeAttr(String(detailRecord[k]||''))}"></div>`).join('');
+    switchView('view-correction');
+  }
+  function closeCorrection(){switchView('view-search');}
+  let corrBusy=false;
+  async function submitCorrection(){if(corrBusy)return;corrBusy=true;try{await _submitCorrection();}finally{setTimeout(()=>{corrBusy=false;},1500);}}
+  async function _submitCorrection(){
+    if(!detailRecord||!me)return;
+    const reason=document.getElementById('corr-reason').value.trim();
+    if(!reason)return toast('Reason required','warning');
+    const changes={};
+    document.querySelectorAll('#corr-fields [data-col]').forEach(inp=>{const c=inp.dataset.col;const oldV=inp.dataset.old;const newV=inp.value.trim();if(oldV!==newV)changes[c]={old:oldV,new:newV};});
+    if(!Object.keys(changes).length)return toast('No changes made','warning');
+    try{
+      const rid=String(detailRecord._id||'');const isChunk=rid.includes('|');
+      const keys=Object.keys(detailRecord).filter(k=>!k.startsWith('_'));
+      const noKey=keys.find(k=>/consumer.*(no|number|id)/i.test(k)),nmKey=keys.find(k=>/consumer.*name|^name$/i.test(k));
+      const now=Date.now();
+      const q=qGet();
+      q.push({clientId:me.phone+'_corr_'+now+'_'+Math.random().toString(36).slice(2,7),col:'wasaCorrections',tsField:'createdAt',doc:{targetCollection:isChunk?'wasaConsumerChunks':'wasaBulkData',targetId:rid,consumerNo:noKey?String(detailRecord[noKey]||''):'',consumerName:nmKey?String(detailRecord[nmKey]||''):'',officerName:me.name,officerPhone:me.phone,reason,changes,status:'pending',deviceTime:now}});
+      {const nd=notifDoc('correction_request',{name:me.name,phone:me.phone,consumerNo:noKey?String(detailRecord[noKey]||''):'',consumerName:nmKey?String(detailRecord[nmKey]||''):'',reason},{link:{id:q[q.length-1].clientId}});if(nd)q.push(notifQueueItem(nd));}
+      audit('correction_request','Correction for consumer '+(noKey?String(detailRecord[noKey]||''):'')+': '+reason);
+      if(!lsSet(QUEUE_KEY,q))return toast('Phone storage is full — cannot save','error');
+      updatePending();flushQueue();
+      toast(navigator.onLine?'✅ Sent to Admin for review':'✅ Saved. It will reach Admin automatically when internet is back','success');
+      switchView('view-search');
+    }catch(e){toast('Fail: '+e.message,'error');}
+  }
+
+  async function loadMyActivities(force){
+    if(!me)return;
+    if(!force&&myActLoadedAt&&Date.now()-myActLoadedAt<45000){renderMyActivities();return;}
+    try{
+      const snap=await withTimeout(db.collection('wasaActivities').where('officerPhone','==',me.phone).get(),10000);
+      myActivities=snap.docs.map(d=>({_id:d.id,...d.data()})).sort((a,b)=>(b.timestamp?.seconds||0)-(a.timestamp?.seconds||0));
+      myActLoadedAt=Date.now();indexEntries(myActivities);
+    }catch(e){/* offline or slow: keep what is already on screen */}
+    populateOfficerActivityFilters();renderMyActivities();
+  }
+  function actClose(){document.getElementById('adm-ov').classList.remove('open');}
+
+  function renderReports(){
+    const time=document.getElementById('rep-time').value;
+    let list=myActivities;const type=document.getElementById('rep-type')?.value||'all';if(type!=='all')list=list.filter(a=>a.activityKey===type);const now=Date.now();
+    if(time==='today'){const t=new Date();t.setHours(0,0,0,0);list=list.filter(a=>a.timestamp&&a.timestamp.seconds*1000>=t.getTime());}
+    else if(time==='week')list=list.filter(a=>a.timestamp&&(now-a.timestamp.seconds*1000)<=7*86400000);
+    else if(time==='month')list=list.filter(a=>a.timestamp&&(now-a.timestamp.seconds*1000)<=30*86400000);
+    const total=list.length;const recovery=list.reduce((s,a)=>s+(Number(a.amount)||0),0);
+    const byType={};list.forEach(a=>{const t=a.activityType||'Other';byType[t]=(byType[t]||0)+1;});
+    let html=`<div class="kpi-grid"><div class="kpi-box"><div class="lbl">Total</div><div class="val" style="color:var(--p500);">${total}</div></div><div class="kpi-box"><div class="lbl">Recovery</div><div class="val" style="color:var(--s500);font-size:1.25rem;">Rs. ${recovery.toLocaleString()}</div></div></div>`;
+    if(Object.keys(byType).length){html+=`<div style="background:white;border-radius:var(--r-md);padding:14px;border:1px solid var(--g200);"><div style="font-size:0.8125rem;font-weight:800;margin-bottom:10px;">By Activity Type</div>`+Object.entries(byType).map(([k,v])=>`<div class="detail-row"><span class="k">${escapeHtml(k)}</span><span class="v">${v}</span></div>`).join('')+`</div>`;}
+    document.getElementById('rep-stats').innerHTML=html;
+    document.getElementById('rep-mgmt-only').style.display=(me&&(me.role==='manager'||me.role==='admin'||me.role==='superadmin'))?'block':'none';
+  }
+  function downloadMyReport(){
+    if(!(me&&(me.role==='manager'||me.role==='admin'||me.role==='superadmin')))return toast('Management only','error');
+    const csv='Type,Time,Amount\n'+myActivities.map(a=>`"${a.activityType||''}","${a.timestamp?new Date(a.timestamp.seconds*1000).toLocaleString():''}","${a.amount||0}"`).join('\n');
+    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='my_report_'+Date.now()+'.csv';a.click();URL.revokeObjectURL(url);
+    toast('Report downloaded','success');
+  }
+
+  let officerInboxUnsub=null;
+  function loadOfficerInbox(){const el=document.getElementById('officer-inbox-list');if(!el||!me)return;el.innerHTML='<div class="loading-center">Loading messages...</div>';if(officerInboxUnsub)officerInboxUnsub();officerInboxUnsub=db.collection('wasaMessages').where('officerPhone','==',me.phone).limit(100).onSnapshot(snap=>{const rows=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));el.innerHTML=rows.length?rows.map(m=>`<div style="padding:10px;margin:7px 0;border:1px solid var(--g200);border-radius:10px;background:${m.senderRole==='admin'?'var(--p50)':'white'};"><b>${escapeHtml(m.senderName||m.senderRole||'Message')}</b><div style="white-space:pre-wrap;margin-top:4px;">${escapeHtml(m.text||'')}</div><small style="color:var(--g500);">${m.createdAt?.seconds?new Date(m.createdAt.seconds*1000).toLocaleString():''}</small></div>`).join(''):'<div class="empty"><h4>No messages yet</h4></div>';},e=>{el.innerHTML='<p>Inbox load error: '+escapeHtml(e.message)+'</p>';});}
+  async function officerSendMessage(){if(!me)return;const input=document.getElementById('officer-msg');const text=input.value.trim();if(!text)return toast('Message likhein','warning');try{await db.collection('wasaMessages').add({officerPhone:me.phone,officerName:me.name,senderRole:'officer',senderName:me.name,text,createdAt:firebase.firestore.FieldValue.serverTimestamp(),readByAdmin:false});input.value='';toast('Message sent','success');}catch(e){toast('Message send nahi hua: '+e.message,'error');}}
+  function fillProfile(){paintProfileText();paintProfileRequest();refreshMe().then(paintProfileText);}
+  function paintProfileText(){
+    if(!me)return;
+    document.getElementById('pf-name').textContent=me.name;
+    document.getElementById('pf-role').textContent=me.designation||me.role;
+    document.getElementById('pf-phone').textContent=me.phone;
+    document.getElementById('pf-cnic').textContent=me.cnic||'-';
+    document.getElementById('pf-desig').textContent=me.designation||'-';
+    document.getElementById('pf-role2').textContent=me.role;
+    document.getElementById('pf-status').textContent=me.status||'active';
+    const av=document.getElementById('pf-avatar');
+    if(me.photoUrl)av.outerHTML=`<img id="pf-avatar" class="avatar" src="${me.photoUrl}" style="width:100px;height:100px;margin:0 auto 12px;">`;
+    else av.textContent=(me.name||'?').charAt(0).toUpperCase();
+  }
+
+  /* ==========================================================
+     📱 PHONE-SIDE HELPERS: stay signed in, offline queue
+     Every submitted form is saved on the phone first, then sent to
+     Firestore (wasaActivities) in the background. Nothing is lost when
+     the internet drops, and Save never waits for the network.
+     ========================================================== */
+  const QUEUE_KEY='wasaQueue_v2', FAILED_KEY='wasaFailed_v2', SESSION_KEY='wasaSession_v1';
+  function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(_){return d;}}
+  function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(_){return false;}}
+  function lsDel(k){try{localStorage.removeItem(k);}catch(_){}}
+  function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);}
+
+  /* ----- Session ----- */
+  function saveSession(){if(!me||me.id==='__super__')return;const s=Object.assign({},me);delete s.passHash;try{sessionStorage.setItem(SESSION_KEY,JSON.stringify(s));}catch(_){}}
+  function clearSession(){try{sessionStorage.removeItem(SESSION_KEY);}catch(_){}lsDel(SESSION_KEY);}
+  async function bootRoute(){
+    const t0=Date.now();let s=null;try{s=JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null');}catch(_){}let ok=false;
+    if(s&&s.id&&s.phone){
+      ok=true;me=s;
+      if(navigator.onLine){
+        try{
+          const d=await withTimeout(db.collection('wasaUsers').doc(s.id).get(),6000);
+          if(!d.exists)ok=false;
+          else{const u=d.data();if(u.status==='pending'||u.status==='disabled')ok=false;else me={id:d.id,...u};}
+        }catch(_){/* network problem: trust the saved session */}
+      }
+    }
+    setTimeout(()=>{if(ok&&me){enterApp();}else{clearSession();me=null;switchView('view-login');}},Math.max(0,1500-(Date.now()-t0)));
+  }
+
+  /* ----- Offline queue ----- */
+  let flushing=false;
+  function qGet(){return lsGet(QUEUE_KEY,[]);}
+  function qSet(q){lsSet(QUEUE_KEY,q);updatePending();}
+  function updatePending(){const p=document.getElementById('p-pill');if(p)p.textContent=qGet().length+' Pending';}
+  async function flushQueue(){
+    if(flushing||!navigator.onLine||!qGet().length)return;
+    flushing=true;
+    try{
+      for(const it of qGet()){
+        const ref=db.collection(it.col||'wasaActivities').doc(it.clientId);
+        try{
+          await withTimeout(ref.set(Object.assign({},it.doc,{[it.tsField||'timestamp']:firebase.firestore.FieldValue.serverTimestamp()})),12000);
+          qSet(qGet().filter(x=>x.clientId!==it.clientId));myActLoadedAt=0;
+        }catch(e){
+          if(e&&e.code==='permission-denied'){
+            const f=lsGet(FAILED_KEY,[]);f.push(it);lsSet(FAILED_KEY,f);
+            qSet(qGet().filter(x=>x.clientId!==it.clientId));toast('One entry was rejected by the server','error');continue;
+          }
+          break; /* network problem: keep the rest and retry later */
+        }
+      }
+    }finally{flushing=false;updatePending();try{if(document.getElementById('view-activity').classList.contains('active'))renderMyActivities();}catch(_){}}
+  }
+
+  /* ----- Conditional "required only when" (set in Admin > Form Builder) ----- */
+  function condMet(cond,valsByLabel){
+    const parts=String(cond||'').split('=');if(parts.length<2)return false;
+    const lab=parts[0].trim().toLowerCase();
+    const wanted=parts.slice(1).join('=').split('|').map(x=>x.trim().toLowerCase()).filter(Boolean);
+    const key=Object.keys(valsByLabel).find(k=>k.trim().toLowerCase()===lab);if(!key)return false;
+    const cur=String(valsByLabel[key]||'').split(',').map(x=>x.trim().toLowerCase());
+    return wanted.some(w=>cur.includes(w));
+  }
+  /* Fill default values, and values remembered from the previous entry */
+  function applyDefaults(fields,retain){
+    fields.forEach(f=>{
+      const fg=document.querySelector(`#dyn-fields .fg[data-fid="${f.id}"]`);if(!fg)return;
+      const v=(retain&&retain[f.id]!=null&&retain[f.id]!=='')?retain[f.id]:(f.def||'');if(!v)return;
+      if(f.type==='radio'||f.type==='checkbox'){
+        const want=String(v).split(',').map(x=>x.trim().toLowerCase());
+        fg.querySelectorAll('.opt-pill').forEach(p=>{if(want.includes(String(p.dataset.value).toLowerCase()))p.classList.add('selected');});
+      }else{const inp=fg.querySelector('input:not([type=file]),select,textarea');if(inp)inp.value=v;}
+    });
+  }
+
+  /* ==========================================================
+     🗃️ CONSUMER DATA = a few big "blocks" instead of 1 lakh documents
+     wasaConsumerMeta/main        : list of blocks + version of each
+     wasaConsumerChunks/<blockId> : ~5,000 consumers each (JSON text)
+     A full 1 lakh list = about 35 documents, so upload / load / delete
+     all fit inside the FREE Firebase plan. The phone keeps a copy
+     (IndexedDB) and only downloads blocks that changed.
+     ========================================================== */
+  function cdT(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))]);}
+  function cdOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open('wasaCache',1);r.onupgradeneeded=()=>{r.result.createObjectStore('kv');};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+  async function cdGet(k){try{const d=await cdOpen();return await new Promise((res,rej)=>{const q=d.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}catch(_){return undefined;}}
+  async function cdSet(k,v){try{const d=await cdOpen();await new Promise((res,rej)=>{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error);});return true;}catch(_){return false;}}
+  async function cdDel(k){try{const d=await cdOpen();await new Promise((res,rej)=>{const t=d.transaction('kv','readwrite');t.objectStore('kv').delete(k);t.oncomplete=res;t.onerror=()=>rej(t.error);});}catch(_){}}
+  async function cdKeys(){try{const d=await cdOpen();return await new Promise((res,rej)=>{const q=d.transaction('kv').objectStore('kv').getAllKeys();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error);});}catch(_){return [];}}
+  async function cdClear(){const ks=await cdKeys();for(const k of ks)await cdDel(k);}
+
+  /* Returns {rows, meta, source:'server'|'cache'|'empty'|'none', partial}
+     Online: 1 read for meta + 1 read per CHANGED block. Offline: uses the phone's copy. */
+  async function loadConsumerData(onProgress){
+    let meta=null;
+    if(navigator.onLine){
+      try{
+        const d=await cdT(db.collection('wasaConsumerMeta').doc('main').get(),10000);
+        if(!d.exists){await cdClear();return{rows:[],meta:null,source:'none',partial:false};}
+        meta=d.data();
+      }catch(_){meta=null;}
+    }
+    let source='server';
+    if(!meta){meta=await cdGet('meta');source='cache';if(!meta)return{rows:[],meta:null,source:'empty',partial:false};}
+    const list=meta.chunks||[],total=list.length,parsed=new Array(total);let next=0,done=0,partial=false;
+    async function worker(){
+      while(next<total){
+        const k=next++,ch=list[k];
+        let c=await cdGet('chunk:'+ch.id);
+        if(!(c&&(c.v===ch.v||source==='cache'))){
+          try{
+            const d=await cdT(db.collection('wasaConsumerChunks').doc(ch.id).get(),60000);
+            if(d.exists){const x=d.data();c={v:ch.v,cols:x.cols||[],json:x.json||'[]'};await cdSet('chunk:'+ch.id,c);}
+          }catch(_){}
+        }
+        if(c)parsed[k]={id:ch.id,c};else partial=true;
+        done++;if(onProgress)onProgress(done,total);
+      }
+    }
+    await Promise.all([worker(),worker(),worker(),worker()]);
+    if(source==='server'){
+      const keep=new Set(list.map(x=>'chunk:'+x.id));
+      for(const k of await cdKeys()){if(String(k).startsWith('chunk:')&&!keep.has(k))await cdDel(k);}
+      if(!partial)await cdSet('meta',meta);
+    }
+    const rows=[];
+    parsed.forEach(p=>{
+      if(!p)return;const cols=p.c.cols;let arr=[];
+      try{arr=JSON.parse(p.c.json);}catch(_){}
+      for(let i=0;i<arr.length;i++){
+        const r=arr[i];if(!r)continue;
+        const o={};for(let j=0;j<cols.length;j++)o[cols[j]]=r[j]==null?'':r[j];
+        o._id=p.id+'|'+i;rows.push(o);
+      }
+    });
+    return{rows,meta,source,partial};
+  }
+
+  function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function escapeAttr(s){return String(s||'').replace(/["'\\]/g,'');}
+
+  window.addEventListener('online',()=>{document.getElementById('sync-bar').classList.remove('offline');document.getElementById('sync-text').textContent='Online — Ready';flushQueue();});
+  window.addEventListener('offline',()=>{document.getElementById('sync-bar').classList.add('offline');document.getElementById('sync-text').textContent='Offline — Data cached';});
+
+  window.addEventListener('DOMContentLoaded',()=>{document.getElementById('dyn-fields').addEventListener('input',e=>{const fg=e.target.closest&&e.target.closest('.fg');if(fg)fg.classList.remove('has-error');});loadSettings();updatePending();paintLoginPendingNote();registerSW();bootRoute();setInterval(flushQueue,20000);setInterval(()=>{if(me&&bulkCache&&navigator.onLine)loadBulkCache(true);},600000);});
+  
+  /* ==========================================================
+     🔔 NOTIFICATIONS  +  🧭 AUDIT  +  🔐 OTP (admin-switchable)
+     ========================================================== */
+  const NOTIF_DEFAULTS={
+ payment_recorded:{label:'Bill payment collected',enabled:true,admin:true,manager:false,officer:false,sec:'activities',adminTitle:'💰 Payment collected',adminBody:'{name} collected Rs {amount} for consumer {consumerNo} ({section}).',userTitle:'Saved',userBody:'Saved.'},
+ 
+ profile_request:{label:'Profile change request (officer → admin)',enabled:true,admin:true,manager:false,officer:false,sec:'pending',adminTitle:'👤 Profile change request',adminBody:'{name} ({phone}) asked to change: {fields}.',userTitle:'Request sent',userBody:'Your profile change was sent to Admin.'},
+ profile_changed:{label:'Profile updated by officer',enabled:true,admin:true,manager:false,officer:false,sec:'officers',adminTitle:'👤 Profile updated',adminBody:'{name} ({phone}) updated: {fields}.',userTitle:'Saved',userBody:'Profile updated.'},
+ profile_approved:{label:'Profile change approved',enabled:true,admin:false,manager:false,officer:true,sec:'pending',adminTitle:'✅ Profile change approved',adminBody:'{by} approved the profile change of {name}.',userTitle:'✅ Profile updated',userBody:'Admin approved your profile change.'},
+ profile_rejected:{label:'Profile change rejected',enabled:true,admin:false,manager:false,officer:true,sec:'pending',adminTitle:'❌ Profile change rejected',adminBody:'{by} rejected the profile change of {name}.',userTitle:'❌ Profile change rejected',userBody:'Admin rejected your profile change.'},
+ new_signup:{label:'New account request',enabled:true,admin:true,manager:false,officer:false,sec:'pending',adminTitle:'👤 New account request',adminBody:'{name} ({phone}) wants to join as {designation}.',userTitle:'Request sent',userBody:'Your account request has been sent to Admin.'},
+ account_approved:{label:'Account approved',enabled:true,admin:false,manager:false,officer:true,sec:'officers',adminTitle:'✅ Account approved',adminBody:'{name} was approved by {by}.',userTitle:'✅ Account approved',userBody:'Your account was approved by {by}.'},
+ password_reset_request:{label:'Password reset request',enabled:true,admin:true,manager:false,officer:false,sec:'pending',adminTitle:'🔑 Password reset request',adminBody:'{name} ({phone}) asked for a new password.',userTitle:'Reset requested',userBody:'Your password reset request was sent to Admin.'},
+ password_changed:{label:'Password changed',enabled:true,admin:true,manager:false,officer:true,sec:'officers',adminTitle:'🔑 Password changed',adminBody:'Password of {name} was changed by {by}.',userTitle:'🔑 Password changed',userBody:'Your password was changed by {by}. If this was not you, tell Admin.'},
+ correction_request:{label:'Correction request (officer → admin)',enabled:true,admin:true,manager:false,officer:false,sec:'corrections',adminTitle:'✏️ Correction request',adminBody:'{name} asked to correct consumer {consumerNo} {consumerName}. Reason: {reason}',userTitle:'Correction sent',userBody:'Your correction for {consumerNo} was sent to Admin.'},
+ correction_approved:{label:'Correction approved',enabled:true,admin:false,manager:false,officer:true,sec:'corrlog',adminTitle:'✅ Correction approved',adminBody:'{by} approved the correction of {consumerNo} requested by {name}.',userTitle:'✅ Application accepted',userBody:'Your correction for consumer {consumerNo} was accepted by {by}.'},
+ correction_rejected:{label:'Correction rejected',enabled:true,admin:false,manager:false,officer:true,sec:'corrlog',adminTitle:'❌ Correction rejected',adminBody:'{by} rejected the correction of {consumerNo} requested by {name}.',userTitle:'❌ Application rejected',userBody:'Your correction for consumer {consumerNo} was rejected by {by}.'},
+ activity_submitted:{label:'Field entry submitted (1 extra write per entry!)',enabled:false,admin:true,manager:false,officer:false,sec:'activities',adminTitle:'📝 New entry',adminBody:'{name} saved a {section} entry {consumerNo}.',userTitle:'Saved',userBody:'Entry saved.'}
+};
+function nFill(t,v){return String(t||'').replace(/\{(\w+)\}/g,function(m,k){return v&&v[k]!=null&&v[k]!==''?v[k]:'';}).replace(/\s+/g,' ').trim();}
+
+  let notifCfg=lsGet('wasaNotifCfg',null)||{},notifUnsub=null,notifItems=[],notifFirst=true;
+  async function refreshNotifCfg(){try{const d=await withTimeout(db.collection('wasaSettings').doc('notifications').get(),6000);notifCfg=d.exists?d.data():{};lsSet('wasaNotifCfg',notifCfg);}catch(_){}}
+  function nRule(ev){const b=NOTIF_DEFAULTS[ev]||{};const o=(notifCfg&&notifCfg.rules&&notifCfg.rules[ev])||{};return Object.assign({},b,o);}
+  /* build a notification document (or null when the Admin switched that event off) */
+  function notifDoc(ev,vars,opts){
+    const r=nRule(ev);if(!r.enabled)return null;
+    const to=[];if(r.admin)to.push('role:admin');if(r.manager)to.push('role:manager');if(r.officer&&opts&&opts.userPhone)to.push('u:'+opts.userPhone);
+    if(!to.length)return null;
+    return {event:ev,vars:vars||{},to,link:Object.assign({sec:r.sec||''},(opts&&opts.link)||{}),by:(me&&me.name)||(vars&&vars.name)||'',ts:Date.now()};
+  }
+  function notifQueueItem(nd){return {clientId:((me&&me.phone)||'anon')+'_n_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),col:'wasaNotifications',tsField:'createdAt',doc:nd};}
+  async function notifyDirect(ev,vars,opts){try{const nd=notifDoc(ev,vars,opts);if(!nd)return;nd.createdAt=firebase.firestore.FieldValue.serverTimestamp();await withTimeout(db.collection('wasaNotifications').add(nd),8000);}catch(_){}}
+  function audit(type,text,who){try{const w=who||me||{};db.collection('wasaAudit').add({type,text:text||'',byName:w.name||'',byPhone:w.phone||'',byRole:w.designation||w.role||'',ts:Date.now(),createdAt:firebase.firestore.FieldValue.serverTimestamp()}).catch(()=>{});}catch(_){}}
+  function nTs(n){return n.createdAt&&n.createdAt.seconds?n.createdAt.seconds*1000:(n.ts||0);}
+  function nRender(n){
+    if(n.event==='broadcast')return {title:n.title||'📢 Notice',body:n.body||''};
+    const r=nRule(n.event);return {title:nFill(r.userTitle||r.adminTitle,n.vars),body:nFill(r.userBody||r.adminBody,n.vars)};
+  }
+  function nReadKey(){return 'wasaNRead_'+(me&&me.phone||'x');}
+  function nReadSet(){try{return new Set(JSON.parse(localStorage.getItem(nReadKey())||'[]'));}catch(_){return new Set();}}
+  function nSaveRead(s){try{localStorage.setItem(nReadKey(),JSON.stringify(Array.from(s).slice(-300)));}catch(_){}}
+  function nAgo(ms){if(!ms)return '';const m=Math.floor((Date.now()-ms)/60000);if(m<1)return 'now';if(m<60)return m+' min';const h=Math.floor(m/60);if(h<24)return h+' h';return new Date(ms).toLocaleDateString()+' '+new Date(ms).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});}
+  function startNotif(){
+    if(notifUnsub||!me||me.id==='__super__')return;
+    refreshNotifCfg();
+    try{notifUnsub=db.collection('wasaNotifications').where('to','array-contains-any',['u:'+me.phone,'role:officer']).onSnapshot(snap=>{
+      notifItems=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>nTs(b)-nTs(a));
+      if(!notifFirst)snap.docChanges().forEach(ch=>{if(ch.type==='added')nPop(ch.doc.data());});
+      notifFirst=false;nPaint();
+    },()=>{});}catch(_){}
+  }
+  function stopNotif(){try{if(notifUnsub)notifUnsub();}catch(_){}notifUnsub=null;notifItems=[];notifFirst=true;nPaint();}
+  function nPop(n){
+    const t=nRender(n);toast('🔔 '+t.title+(t.body?' — '+t.body:''),'info');
+    if(notifCfg&&notifCfg.osPush===false)return;
+    try{try{if(navigator.vibrate)navigator.vibrate(60);}catch(_){}
+      if('Notification' in window&&Notification.permission==='granted'&&document.hidden){
+        if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(reg=>{if(reg&&reg.showNotification)reg.showNotification(t.title,{body:t.body,tag:'wasa-n'});else new Notification(t.title,{body:t.body});});
+        else new Notification(t.title,{body:t.body});
+      }}catch(_){}
+  }
+  function nPaint(){
+    const rs=nReadSet();const unread=notifItems.filter(n=>!rs.has(n.id)).length;
+    const b=document.getElementById('nbell-badge');if(b){b.textContent=unread>99?'99+':unread;b.style.display=unread?'flex':'none';}
+    const box=document.getElementById('npanel-list');if(!box)return;
+    box.innerHTML=notifItems.length?notifItems.slice(0,60).map(n=>{const t=nRender(n);const un=!rs.has(n.id);return `<div class="nitem ${un?'unread':''}" onclick="nRead('${n.id}')"><div class="ndot"></div><div><div class="ntitle">${esc2(t.title)}</div><div class="nbody">${esc2(t.body)}</div><div class="ntime">${esc2(nAgo(nTs(n)))}</div></div></div>`;}).join(''):'<div style="text-align:center;padding:40px;color:#64748b;">🔔<br>No notifications yet</div>';
+  }
+  function esc2(x){return String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function nTogglePanel(){const p=document.getElementById('npanel');const open=p.classList.toggle('open');if(open){nPaint();try{if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();}catch(_){}}}
+  function nRead(id){const s=nReadSet();s.add(id);nSaveRead(s);nPaint();}
+  function nMarkAll(){const s=nReadSet();notifItems.forEach(n=>s.add(n.id));nSaveRead(s);nPaint();}
+
+  /* ---------- OTP (Firebase Phone Auth) — only when Admin switches it ON ---------- */
+  let _otpConfirm=null,_rc=null,_otpOkPhone='',_fgCtx=null;
+  async function getSecCfg(){try{const d=await withTimeout(db.collection('wasaSettings').doc('security').get(),6000);const c=d.exists?d.data():{};lsSet('wasaSecCfg',c);return c;}catch(_){return lsGet('wasaSecCfg',{})||{};}}
+  async function loadAuthSdk(){
+    if(window.firebase&&firebase.auth)return;
+    await new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js';s.onload=res;s.onerror=()=>rej(new Error('Could not load SMS service. Check internet.'));document.head.appendChild(s);});
+  }
+  async function otpSend(phone11,holderId){
+    await loadAuthSdk();
+    try{if(_rc){_rc.clear();}}catch(_){}
+    _rc=new firebase.auth.RecaptchaVerifier(holderId,{size:'invisible'});
+    try{_otpConfirm=await firebase.auth().signInWithPhoneNumber('+92'+phone11.replace(/^0/,''),_rc);}
+    catch(e){try{_rc.clear();}catch(_){}_rc=null;throw e;}
+  }
+  async function otpCheck(code){
+    if(!_otpConfirm)throw new Error('Send the code first');
+    await _otpConfirm.confirm(code);
+    try{await firebase.auth().signOut();}catch(_){}
+    _otpConfirm=null;
+  }
+  function otpErr(e){const m=(e&&(e.code||e.message))||'';if(/billing|operation-not-allowed|not-allowed/i.test(m))return 'SMS is not enabled on this Firebase project (needs the Blaze plan). Tell Admin to switch OTP off.';if(/too-many/i.test(m))return 'Too many attempts. Try later.';if(/invalid-verification|invalid-code/i.test(m))return 'Wrong code';return 'OTP error: '+(e.message||m);}
+
+
+  /* ==========================================================
+     📍 DUTY-HOURS LOCATION  (visible to the officer — Android always
+     shows a permission + a background-use notice; it cannot be hidden)
+     ========================================================== */
+  let dutyTimer=null,dutyCfg=null,dutyWatch=null,dutyLast=null;
+  async function loadDutyCfg(){try{const d=await withTimeout(db.collection('wasaSettings').doc('tracking').get(),6000);dutyCfg=d.exists?d.data():{};lsSet('wasaDutyCfg',dutyCfg);}catch(_){dutyCfg=lsGet('wasaDutyCfg',{})||{};}return dutyCfg;}
+  function todayKey(){return new Date().toISOString().slice(0,10);}
+  async function startDutyTracking(){
+    if(!me||me.id==='__super__'||dutyTimer)return;
+    await loadDutyCfg();
+    if(dutyCfg.enabled===false)return; /* Admin switched it off */
+    if(!navigator.geolocation)return;
+    const everyMs=Math.max(2,Number(dutyCfg.intervalMin)||5)*60000;
+    const ping=()=>{
+      navigator.geolocation.getCurrentPosition(pos=>{
+        const c=pos.coords;dutyLast={lat:c.latitude,lng:c.longitude,acc:c.accuracy,ts:Date.now()};
+        sendDutyPing(dutyLast);
+      },()=>{ /* permission off / no fix: skip this ping, admin will see the gap */ },{enableHighAccuracy:false,maximumAge:60000,timeout:20000});
+    };
+    ping();dutyTimer=setInterval(ping,everyMs);
+  }
+  function stopDutyTracking(){if(dutyTimer)clearInterval(dutyTimer);dutyTimer=null;}
+  async function sendDutyPing(fix){
+    if(!navigator.onLine)return; /* no queue: a missed ping just shows as a gap, which is itself informative */
+    try{
+      const ref=db.collection('wasaLiveTrack').doc(me.phone);
+      const day=todayKey();
+      const snap=await withTimeout(ref.get(),8000).catch(()=>null);
+      let trail=(snap&&snap.exists&&snap.data().day===day)?(snap.data().trail||[]):[];
+      trail.push({lat:fix.lat,lng:fix.lng,ts:fix.ts});
+      if(trail.length>120)trail=trail.slice(trail.length-120);
+      await withTimeout(ref.set({name:me.name,phone:me.phone,designation:me.designation||'',lat:fix.lat,lng:fix.lng,acc:fix.acc,ts:fix.ts,day,trail,updatedAt:firebase.firestore.FieldValue.serverTimestamp()}),8000);
+    }catch(_){}
+  }
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&me&&!dutyTimer)startDutyTracking(); });
+
+  /* ==========================================================================
+     v12 ADDITIONS  (officer app)
+     1. Safe registration / password-reset requests (no duplicates, clear result)
+     2. Side menu  ->  My Targets, My Activity, Consumer Map, Inbox, Profile
+     3. My Activity tracker (all Form Builder forms, date range, pending uploads)
+     4. Profile edit (goes to Admin for approval, or applied at once if Admin allows)
+     5. Quick-search column selector (Admin chooses the columns) + Consumer Map
+        with "Get Directions"
+     ========================================================================== */
+
+  /* ---------- Officer app settings written by Admin (Admin > System Settings) ---------- */
+  const OFFICER_CFG_KEY='wasaOfficerCfg_v1';
+  let officerCfg=lsGet(OFFICER_CFG_KEY,null)||{};
+  async function loadOfficerCfg(){
+    try{const d=await withTimeout(db.collection('wasaSettings').doc('officerApp').get(),6000);officerCfg=d.exists?d.data():{};lsSet(OFFICER_CFG_KEY,officerCfg);}catch(_){}
+    renderQuickColSelect();
+    return officerCfg;
+  }
+
+  /* ==========================================================================
+     1. REGISTRATION  (fixes: same request reaching Admin many times)
+        - the button is locked while the request is being sent (double tap safe)
+        - phone AND CNIC are checked against every existing account / request
+        - the request itself is created atomically under a fixed id, so even two
+          phones sending at the same moment cannot create two requests
+        - a clear full-screen result is shown instead of a short toast
+     ========================================================================== */
+  let regBusy=false;
+  function regSetBusy(b){
+    regBusy=b;const s=document.getElementById('r-submit');
+    if(s){s.disabled=b;s.innerHTML=b?'<i class="fa-solid fa-spinner fa-spin"></i> Sending request...':'Submit Request to Admin';}
+  }
+  function regMsg(html,kind){
+    const el=document.getElementById('r-msg');if(!el)return;
+    if(!html){el.style.display='none';el.innerHTML='';return;}
+    el.style.display='block';el.className='reg-msg '+(kind||'error');el.innerHTML=html;
+    try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(_){}
+  }
+  function showRegSuccess(name,phone){
+    document.getElementById('r-form-wrap').style.display='none';
+    const box=document.getElementById('r-success');box.style.display='block';
+    document.getElementById('r-success-body').innerHTML=`<div class="big-ok">✅</div><h3>Request submitted</h3><p><b>${escapeHtml(name)}</b><br>${escapeHtml(phone)}</p><p style="margin-top:10px;">Your account request has been sent to Admin. You can sign in <b>after Admin approves</b> it. Please do not send it again.</p>`;
+    lsSet('wasaRegPending',{phone,name,ts:Date.now()});
+    paintLoginPendingNote();
+  }
+  function resetRegisterView(){
+    const f=document.getElementById('r-form-wrap');if(f)f.style.display='block';
+    const s=document.getElementById('r-success');if(s)s.style.display='none';
+    regMsg('');
+  }
+  function openRegister(){resetRegisterView();switchView('view-register');}
+  function paintLoginPendingNote(){
+    const el=document.getElementById('l-pending-note');if(!el)return;
+    const p=lsGet('wasaRegPending',null);
+    if(p&&p.phone&&Date.now()-(p.ts||0)<14*86400000){el.style.display='block';el.innerHTML=`⏳ Your account request for <b>${escapeHtml(p.phone)}</b> is waiting for Admin approval.`;}
+    else el.style.display='none';
+  }
+  async function doRegister(e){
+    if(e&&e.preventDefault)e.preventDefault();
+    if(regBusy)return;
+    const name=document.getElementById('r-name').value.trim().replace(/\s+/g,' ');
+    const phone=document.getElementById('r-phone').value.trim();
+    const cnic=document.getElementById('r-cnic').value.trim();
+    const gender=document.getElementById('r-gender').value;
+    const desig=document.getElementById('r-desig').value;
+    const pass=document.getElementById('r-pass').value.trim();
+    regMsg('');
+    if(name.length<3)return regMsg('Please enter your full name.');
+    if(!/^[0-9]{11}$/.test(phone))return regMsg('Phone number must be exactly 11 digits (e.g. 03001234567).');
+    if(!/^[0-9]{13}$/.test(cnic))return regMsg('CNIC must be exactly 13 digits (without dashes).');
+    if(pass.length<6)return regMsg('Password must be at least 6 characters.');
+    if(!navigator.onLine)return regMsg('No internet. Please connect to the internet and try again.');
+    regSetBusy(true);
+    try{
+      /* 1. does this phone or CNIC already exist (active, disabled or still pending)? */
+      const [byPhone,byCnic]=await Promise.all([
+        db.collection('wasaUsers').where('phone','==',phone).limit(5).get(),
+        db.collection('wasaUsers').where('cnic','==',cnic).limit(5).get()
+      ]);
+      if(!byPhone.empty){
+        const st=byPhone.docs.map(d=>d.data().status);
+        return regMsg(st.includes('pending')&&!st.includes('active')
+          ?'<b>This phone number is already registered.</b><br>Its request is already with Admin and waiting for approval. You do not need to send it again.'
+          :'<b>This phone number is already registered.</b><br>Please go back and sign in. If you forgot your password, use “Forgot Password”.');
+      }
+      if(!byCnic.empty)return regMsg('<b>This user is already registered.</b><br>An account or pending request with this CNIC already exists (under a different phone number). Contact Admin if the number has changed.');
+
+      /* 2. optional SMS check (only when Admin switched it on) */
+      const cfg=await getSecCfg();
+      if(cfg.otpSignup&&_otpOkPhone!==phone){
+        try{await otpSend(phone,'r-recaptcha');}catch(err){return regMsg(escapeHtml(otpErr(err)));}
+        document.getElementById('r-otp-box').style.display='block';document.getElementById('r-submit').style.display='none';
+        return toast('SMS code sent to '+phone,'success');
+      }
+
+      /* 3. create the request atomically under a fixed id (one request per phone) */
+      const ref=db.collection('wasaUsers').doc('req_'+phone);
+      await db.runTransaction(async tx=>{
+        const snap=await tx.get(ref);
+        if(snap.exists){const err=new Error('exists');err.code='already-registered';err.pending=snap.data().status==='pending';throw err;}
+        tx.set(ref,{name,phone,cnic,gender,designation:desig,role:desig==='Management'?'manager':'officer',passHash:pass,status:'pending',phoneVerified:!!cfg.otpSignup,passwordChangedAt:firebase.firestore.FieldValue.serverTimestamp(),passwordChangedBy:'Self (at signup)',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      });
+      audit('signup','Requested a new account as '+desig,{name,phone,designation:desig});
+      notifyDirect('new_signup',{name,phone,designation:desig},{});
+      _otpOkPhone='';document.getElementById('r-otp-box').style.display='none';document.getElementById('r-submit').style.display='';
+      ['r-name','r-phone','r-cnic','r-pass','r-otp'].forEach(id=>{const x=document.getElementById(id);if(x)x.value='';});
+      showRegSuccess(name,phone);
+    }catch(err){
+      if(err&&err.code==='already-registered')regMsg(err.pending?'<b>This phone number is already registered.</b><br>Its request is already with Admin and waiting for approval.':'<b>This phone number is already registered.</b><br>Please sign in.');
+      else regMsg('Could not send the request: '+escapeHtml((err&&err.message)||'unknown error')+'<br>Please check the internet and try again.');
+    }finally{regSetBusy(false);}
+  }
+
+  /* Forgot password: one pending request per phone, button locked while sending */
+  let fgBusy=false;
+  async function doForgot(e){
+    e.preventDefault();if(fgBusy)return;
+    const phone=document.getElementById('fg-phone').value.trim();const cnic=document.getElementById('fg-cnic').value.trim();const newPass=document.getElementById('fg-new').value.trim();
+    const btn=document.getElementById('fg-submit');
+    fgBusy=true;if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Please wait...';}
+    try{
+      const snap=await db.collection('wasaUsers').where('phone','==',phone).where('cnic','==',cnic).limit(1).get();
+      if(snap.empty)return toast('No account with matching phone & CNIC','error');
+      const u=snap.docs[0];const ud=u.data();
+      const cfg=await getSecCfg();
+      if(cfg.otpForgot){
+        _fgCtx={id:u.id,name:ud.name,phone,newPass};
+        try{await otpSend(phone,'fg-recaptcha');}catch(err){return toast(otpErr(err),'error');}
+        document.getElementById('fg-otp-box').style.display='block';
+        return toast('SMS code sent to '+phone,'success');
+      }
+      const rref=db.collection('wasaPasswordResets').doc('rs_'+phone);
+      const ex=await rref.get();
+      if(ex.exists&&ex.data().status==='pending')return toast('Your reset request is already with Admin. Please wait for approval.','warning');
+      await rref.set({userId:u.id,name:ud.name,phone,cnic,requestedNewPass:newPass,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      audit('reset_request','Asked Admin for a password reset',{name:ud.name,phone});
+      notifyDirect('password_reset_request',{name:ud.name,phone},{});
+      toast('✅ Reset request sent to Admin','success');
+      switchView('view-login');
+    }catch(err){toast('Error: '+err.message,'error');}
+    finally{fgBusy=false;if(btn){btn.disabled=false;btn.innerHTML='Send Reset Request';}}
+  }
+
+  /* ==========================================================================
+     2. SIDE MENU
+     ========================================================================== */
+  function openDrawer(){
+    if(!me)return;
+    document.getElementById('dr-name').textContent=me.name||'Officer';
+    document.getElementById('dr-role').textContent=(me.designation||me.role||'')+(me.phone?' • '+me.phone:'');
+    paintDrawerBadges();
+    document.getElementById('drawer-mask').classList.add('open');
+    document.getElementById('drawer').classList.add('open');
+  }
+  function closeDrawer(){
+    document.getElementById('drawer-mask').classList.remove('open');
+    document.getElementById('drawer').classList.remove('open');
+  }
+  function drawerGo(id){
+    closeDrawer();
+    if(id==='map'){switchView('view-search');setSearchMode('map');return;}
+    if(id==='view-search')setSearchMode('list');
+    switchView(id);
+  }
+  function paintDrawerBadges(){
+    const t=document.getElementById('dr-targets-badge');if(!t)return;
+    const list=myTargets||[];
+    t.textContent=list.length?list.length:'';t.style.display=list.length?'inline-block':'none';
+    const p=qGet().filter(x=>!x.col).length;const a=document.getElementById('dr-act-badge');
+    if(a){a.textContent=p?p+' pending':'';a.style.display=p?'inline-block':'none';}
+  }
+
+  /* ==========================================================================
+     3. ALL MY ENTRIES  (uploaded + still waiting on the phone)
+     ========================================================================== */
+  function entryMs(a){
+    if(a&&a.timestamp&&a.timestamp.seconds)return a.timestamp.seconds*1000;
+    return (a&&a.deviceTime)||0;
+  }
+  function myEntriesAll(){
+    const have=new Set(myActivities.map(a=>a._id));
+    const pend=qGet().filter(it=>!it.col&&it.doc&&it.doc.activityKey&&!have.has(it.clientId))
+      .map(it=>Object.assign({},it.doc,{_id:it.clientId,timestamp:{seconds:Math.floor((it.doc.deviceTime||Date.now())/1000)}}));
+    return pend.concat(myActivities);
+  }
+  function pendingIdSet(){return new Set(qGet().filter(x=>!x.col).map(x=>x.clientId));}
+
+  /* ==========================================================================
+     3a. TARGETS
+     ========================================================================== */
+  let myTargets=null,myTargetsAt=0;
+  async function loadTargets(force){
+    if(!me)return [];
+    const ck='wasaTargets_'+me.phone;
+    if(!force&&myTargets&&Date.now()-myTargetsAt<60000)return myTargets;
+    try{
+      const snap=await withTimeout(db.collection('wasaTargets').where('officerPhone','==',me.phone).get(),8000);
+      myTargets=snap.docs.map(d=>({id:d.id,...d.data()}));myTargetsAt=Date.now();lsSet(ck,myTargets);
+    }catch(_){if(!myTargets)myTargets=lsGet(ck,[]);}
+    return myTargets;
+  }
+  function targetStats(t){
+    const list=myEntriesAll().filter(a=>a.activityKey===t.sectionKey);
+    const total=Number(t.targetCount)||0;const n=list.length;
+    const t0=new Date();t0.setHours(0,0,0,0);
+    const today=list.filter(a=>entryMs(a)>=t0.getTime()).length;
+    const pct=total?Math.min(100,Math.round(n/total*100)):0;
+    return {n,total,pct,today,left:Math.max(0,total-n)};
+  }
+  function targetCardHtml(t){
+    const s=targetStats(t);const col=s.pct>=100?'#16A34A':s.pct>=60?'#1A56DB':'#F59E0B';
+    return `<div class="tcard"><div class="trow"><div class="tname">${escapeHtml(t.sectionName||'Activity')}${t.area?`<div class="tarea">📍 ${escapeHtml(t.area)}</div>`:''}</div><div class="tnum"><b>${s.n}</b> / ${s.total}</div></div><div class="tbar"><div style="width:${s.pct}%;background:${col};"></div></div><div class="tfoot"><span>${s.pct}% done</span><span>${s.pct>=100?'🎉 Target completed':`${s.left} remaining`}</span><span>Today +${s.today}</span></div></div>`;
+  }
+  async function renderOfficerTargets(){
+    const box=document.getElementById('officer-targets');if(!box||!me)return;
+    const list=await loadTargets();
+    if(!list.length){box.innerHTML='';return;}
+    let n=0,total=0;list.forEach(t=>{const s=targetStats(t);n+=Math.min(s.n,s.total||s.n);total+=s.total;});
+    const pct=total?Math.min(100,Math.round(n/total*100)):0;
+    box.innerHTML=`<div class="tcard" style="cursor:pointer;" onclick="switchView('view-targets')"><div class="trow"><div class="tname">🎯 My Targets <span style="font-weight:600;color:var(--g500);font-size:.75rem;">(${list.length})</span></div><div class="tnum"><b>${pct}%</b></div></div><div class="tbar"><div style="width:${pct}%;background:${pct>=100?'#16A34A':'#1A56DB'};"></div></div><div class="tfoot"><span>${n} of ${total} done</span><span style="color:var(--p500);font-weight:700;">View all ›</span></div></div>`;
+  }
+  async function renderTargetsPage(){
+    const box=document.getElementById('targets-list');if(!box)return;
+    box.innerHTML='<div class="loading-center"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading targets...</div>';
+    const list=await loadTargets(true);
+    if(!myActivities.length)await loadMyActivities();
+    if(!list.length){box.innerHTML='<div class="empty"><div class="em">🎯</div><h4>No targets yet</h4><p>Admin has not assigned any target to you.</p></div>';return;}
+    box.innerHTML=list.map(targetCardHtml).join('');
+  }
+
+  /* ==========================================================================
+     3b. MY ACTIVITY (tracker)  - every form built in Admin > Form Builder
+     ========================================================================== */
+  let actFormKey='all',actShown=60,allSectionsCache=[];
+  function trackForms(){
+    const out=[],seen=new Set();
+    const add=(k,n,i,old)=>{if(!k||seen.has(k))return;seen.add(k);out.push({key:k,name:n||'Activity',icon:i||'📄',old:!!old});};
+    (allSectionsCache.length?allSectionsCache:sections).forEach(s=>{if(!s.deleted)add(s.key,s.name,s.icon);});
+    (allSectionsCache||[]).forEach(s=>{if(s.deleted)add(s.key,s.name+' (old)',s.icon,true);});
+    myEntriesAll().forEach(a=>add(a.activityKey,(a.activityType||'Activity')+' (old)','📄',true));
+    return out;
+  }
+  function actRangeOk(a,mode,from,to){
+    const t=entryMs(a);if(mode==='all')return true;if(!t)return false;
+    const now=new Date(),sod=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x.getTime();};
+    if(mode==='today')return t>=sod(now);
+    if(mode==='yesterday'){const y=new Date(now);y.setDate(y.getDate()-1);return t>=sod(y)&&t<sod(now);}
+    if(mode==='week')return t>=sod(new Date(now.getTime()-6*86400000));
+    if(mode==='month')return t>=sod(new Date(now.getTime()-29*86400000));
+    if(mode==='custom'){
+      const f=from?new Date(from+'T00:00:00').getTime():0,e=to?new Date(to+'T23:59:59.999').getTime():Infinity;
+      return t>=f&&t<=e;
+    }
+    return true;
+  }
+  function actPickForm(k){actFormKey=k;actShown=60;renderMyActivities();}
+  function actMore(){actShown+=60;renderMyActivities();}
+  function populateOfficerActivityFilters(){
+    const el=document.getElementById('rep-type');
+    if(el){const old=el.value||'all';el.innerHTML='<option value="all">All</option>'+trackForms().map(x=>`<option value="${escapeHtml(x.key)}">${escapeHtml(x.name)}</option>`).join('');el.value=[...el.options].some(o=>o.value===old)?old:'all';}
+  }
+  function renderMyActivities(){
+    const chips=document.getElementById('act-form-chips'),sum=document.getElementById('act-summary'),el=document.getElementById('my-activities');
+    if(!el)return;
+    const forms=trackForms();
+    if(actFormKey!=='all'&&!forms.some(f=>f.key===actFormKey))actFormKey='all';
+    const all=myEntriesAll();
+    chips.innerHTML=[{key:'all',name:'All forms',icon:'📋'}].concat(forms).map(f=>{
+      const n=f.key==='all'?all.length:all.filter(a=>a.activityKey===f.key).length;
+      return `<button type="button" class="chip-btn${actFormKey===f.key?' on':''}" onclick="actPickForm('${escapeAttr(f.key)}')">${escapeHtml(f.icon||'📄')} ${escapeHtml(f.name)} <span class="chip-n">${n}</span></button>`;
+    }).join('');
+    const mode=document.getElementById('act-range').value,from=document.getElementById('act-from').value,to=document.getElementById('act-to').value;
+    document.getElementById('act-custom').style.display=mode==='custom'?'grid':'none';
+    const rows=all.filter(a=>(actFormKey==='all'||a.activityKey===actFormKey)&&actRangeOk(a,mode,from,to)).sort((a,b)=>entryMs(b)-entryMs(a));
+    const pend=pendingIdSet();
+    const amount=rows.reduce((s,a)=>s+(Number(a.amount)||0),0);
+    const delivered=rows.filter(a=>/deliver/i.test(a.status||'')||Object.values(a.values||{}).some(v=>/^delivered$/i.test(String(v)))).length;
+    const gps=rows.filter(a=>entryLatLng(a)).length;
+    const waiting=rows.filter(a=>pend.has(a._id)).length;
+    const card=(v,l,c)=>`<div class="mini"><div class="mv" style="color:${c};">${v}</div><div class="ml">${l}</div></div>`;
+    sum.innerHTML=card(rows.length.toLocaleString(),'Entries','var(--p600)')+(amount>0?card('Rs. '+amount.toLocaleString(),'Amount','var(--s600)'):'')+(delivered>0?card(delivered.toLocaleString(),'Delivered','#2563EB'):'')+card(gps.toLocaleString(),'With location','var(--g700)')+(waiting?card(waiting,'Waiting to upload','var(--w600)'):'');
+    if(!rows.length){el.innerHTML='<div class="empty"><div class="em">📭</div><h4>No entries found</h4><p>Change the form or date range, or tap + to add an entry.</p></div>';return;}
+    let html='',lastDay='';
+    rows.slice(0,actShown).forEach(a=>{
+      const ms=entryMs(a),d=ms?new Date(ms):null;
+      const day=d?d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}):'Unknown date';
+      if(day!==lastDay){lastDay=day;const dayCount=rows.filter(x=>{const m=entryMs(x);return m&&new Date(m).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})===day;}).length;html+=`<div class="day-hd"><span>${escapeHtml(day)}</span><span>${dayCount}</span></div>`;}
+      const t=d?d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'-';
+      const title=a.consumerNo?'Consumer #'+a.consumerNo:(Object.values(a.values||{}).find(v=>v&&String(v).length<40)||a.officerName||'-');
+      html+=`<div class="result-card" style="cursor:pointer;" onclick="actOpen('${escapeAttr(a._id)}')"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><div class="rc-badge">${escapeHtml(a.activityType||'entry')}</div>${pend.has(a._id)?'<span class="wait-badge">⏳ Waiting to upload</span>':'<span class="ok-badge">✓ Uploaded</span>'}</div><div class="rc-title">${escapeHtml(String(title))}</div><div class="rc-meta">🕒 ${escapeHtml(t)}${a.status&&a.status!=='submitted'?' • '+escapeHtml(a.status):''}${a.amount?' • 💰 Rs. '+Number(a.amount).toLocaleString():''}${entryLatLng(a)?' • 📍':''}</div></div>`;
+    });
+    if(rows.length>actShown)html+=`<button class="btn btn-outline btn-full" onclick="actMore()">Show more (${rows.length-actShown} left)</button>`;
+    el.innerHTML=html;
+  }
+  /* read-only detail of one entry (values are escaped) */
+  function actOpen(id){
+    const a=myEntriesAll().find(x=>x._id===id);if(!a)return;
+    const ms=entryMs(a);const t=ms?new Date(ms).toLocaleString():'-';
+    const rows=[['Activity',a.activityType||'-'],['Time',t],['Status',a.status||'-'],['Consumer No',a.consumerNo||'-'],['Amount',a.amount?('Rs. '+Number(a.amount).toLocaleString()):'-']];
+    if(a.values)Object.keys(a.values).forEach(k=>{let v=a.values[k];if(typeof v==='string'&&v.startsWith('data:image'))v='(signature saved)';rows.push([k,v]);});
+    const ll=entryLatLng(a);if(ll)rows.push(['Location',ll.lat.toFixed(6)+', '+ll.lng.toFixed(6)]);
+    let html=rows.map(r=>`<div class="kv"><b>${escapeHtml(String(r[0]))}</b><span style="text-align:right;word-break:break-word;">${escapeHtml(String(r[1]==null?'':r[1]))}</span></div>`).join('');
+    if(a.photoUrl&&/^https?:\/\//i.test(a.photoUrl))html+=`<div class="kv"><b>Photo</b><span><a href="${escapeHtml(a.photoUrl)}" target="_blank" rel="noopener">Open photo</a></span></div>`;
+    if(ll)html+=`<button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="openDirections(${ll.lat},${ll.lng})"><i class="fa-solid fa-diamond-turn-right"></i> Get Directions</button>`;
+    html+='<p style="font-size:.75rem;color:#94a3b8;margin-top:12px;">To fix a mistake, use the Correction request option instead of editing this.</p>';
+    document.getElementById('adm-body').innerHTML=html;
+    document.getElementById('adm-ov').classList.add('open');
+  }
+
+  /* ==========================================================================
+     4. PROFILE EDIT
+     ========================================================================== */
+  let profPhotoFile=null,profBusy=false;
+  async function refreshMe(){
+    if(!me||!me.id||String(me.id).startsWith('__')||!navigator.onLine)return;
+    try{
+      const d=await withTimeout(db.collection('wasaUsers').doc(me.id).get(),6000);
+      if(d.exists){me={id:d.id,...d.data()};saveSession();paintHeaderUser();}
+    }catch(_){}
+  }
+  function paintHeaderUser(){
+    if(!me)return;
+    const n=document.getElementById('u-name');if(n)n.textContent=me.name;
+    const av=document.getElementById('u-avatar');
+    if(av){if(me.photoUrl)av.outerHTML=`<img class="avatar" id="u-avatar" src="${escapeHtml(me.photoUrl)}">`;else{av.outerHTML=`<div class="avatar" id="u-avatar">${escapeHtml((me.name||'O').charAt(0).toUpperCase())}</div>`;}}
+  }
+  async function paintProfileRequest(){
+    const box=document.getElementById('pf-request');if(!box||!me)return;
+    box.style.display='none';
+    const q=qGet().find(x=>x.col==='wasaProfileRequests');
+    if(q){box.style.display='block';box.className='req-note wait';box.innerHTML='⏳ Your profile change is saved on the phone and will reach Admin when the internet is back.';return;}
+    if(!navigator.onLine)return;
+    try{
+      const d=await withTimeout(db.collection('wasaProfileRequests').doc('pr_'+me.phone).get(),6000);
+      if(!d.exists)return;const r=d.data();
+      if(r.status==='pending'){box.style.display='block';box.className='req-note wait';box.innerHTML='⏳ <b>Profile change sent to Admin</b> — waiting for approval.'+Object.keys(r.changes||{}).map(k=>`<div>${escapeHtml(k==='photoUrl'?'Photo':k)}: ${k==='photoUrl'?'new photo':escapeHtml(String(r.changes[k].new||''))}</div>`).join('');}
+      else if(r.status==='rejected'&&!r.seenByOfficer){box.style.display='block';box.className='req-note bad';box.innerHTML='❌ <b>Your last profile change was rejected by Admin.</b>'+(r.note?'<div>'+escapeHtml(r.note)+'</div>':'');}
+    }catch(_){}
+  }
+  function openProfileEdit(){
+    if(!me||me.id==='__super__')return toast('Not available for this account','warning');
+    profPhotoFile=null;
+    document.getElementById('pe-name').value=me.name||'';
+    document.getElementById('pe-cnic').value=me.cnic||'';
+    document.getElementById('pe-gender').value=me.gender||'Male';
+    document.getElementById('pe-err').textContent='';
+    const pv=document.getElementById('pe-avatar');
+    pv.innerHTML=me.photoUrl?`<img src="${escapeHtml(me.photoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`:escapeHtml((me.name||'?').charAt(0).toUpperCase());
+    const instant=officerCfg.profileMode==='instant';
+    document.getElementById('pe-note').textContent=instant?'Changes are applied at once. Admin is informed.':'Changes are sent to Admin. They apply after Admin approves.';
+    document.getElementById('pe-save').innerHTML=instant?'<i class="fa-solid fa-check"></i> Save Changes':'<i class="fa-solid fa-paper-plane"></i> Send to Admin';
+    document.getElementById('sheet-pedit').classList.add('active');
+  }
+  function onProfilePhoto(input){
+    const f=input.files&&input.files[0];if(!f)return;
+    if(!/^image\//.test(f.type)){toast('Please select an image','warning');input.value='';return;}
+    profPhotoFile=f;
+    const url=URL.createObjectURL(f);
+    document.getElementById('pe-avatar').innerHTML=`<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  }
+  async function saveProfileEdit(){
+    if(profBusy||!me)return;
+    const err=document.getElementById('pe-err');err.textContent='';
+    const name=document.getElementById('pe-name').value.trim().replace(/\s+/g,' ');
+    const cnic=document.getElementById('pe-cnic').value.trim();
+    const gender=document.getElementById('pe-gender').value;
+    if(name.length<3){err.textContent='Please enter your full name.';return;}
+    if(cnic&&!/^[0-9]{13}$/.test(cnic)){err.textContent='CNIC must be exactly 13 digits (no dashes).';return;}
+    const changes={};
+    if(name!==(me.name||''))changes.name={old:me.name||'',new:name};
+    if(cnic!==(me.cnic||''))changes.cnic={old:me.cnic||'',new:cnic};
+    if(gender!==(me.gender||'Male')&&(me.gender||gender!=='Male'))changes.gender={old:me.gender||'',new:gender};
+    if(!Object.keys(changes).length&&!profPhotoFile){err.textContent='You have not changed anything.';return;}
+    if(!navigator.onLine){err.textContent='Internet is needed to update your profile.';return;}
+    const btn=document.getElementById('pe-save'),label=btn.innerHTML;
+    profBusy=true;btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Please wait...';
+    try{
+      if(changes.cnic&&cnic){
+        const dup=await db.collection('wasaUsers').where('cnic','==',cnic).limit(3).get();
+        if(dup.docs.some(d=>d.id!==me.id)){err.textContent='This CNIC is already registered with another user.';return;}
+      }
+      if(profPhotoFile){
+        btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Uploading photo...';
+        try{changes.photoUrl={old:me.photoUrl||'',new:await uploadPhoto(profPhotoFile,'profile_'+me.phone,512)};}
+        catch(e){err.textContent='Photo upload failed. Check the internet and try again.';return;}
+      }
+      const instant=officerCfg.profileMode==='instant';
+      if(instant){
+        const upd={};Object.keys(changes).forEach(k=>upd[k]=changes[k].new);
+        upd.profileUpdatedAt=firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('wasaUsers').doc(me.id).update(upd);
+        me=Object.assign({},me,upd);delete me.profileUpdatedAt;saveSession();paintHeaderUser();
+        audit('profile_changed','Updated own profile: '+Object.keys(changes).join(', '));
+        notifyDirect('profile_changed',{name:me.name,phone:me.phone,fields:Object.keys(changes).join(', ')},{});
+        toast('✅ Profile updated','success');
+      }else{
+        await db.collection('wasaProfileRequests').doc('pr_'+me.phone).set({officerId:me.id,officerPhone:me.phone,officerName:me.name||'',changes,status:'pending',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+        audit('profile_request','Asked Admin to change profile: '+Object.keys(changes).join(', '));
+        notifyDirect('profile_request',{name:me.name,phone:me.phone,fields:Object.keys(changes).join(', ')},{});
+        toast('✅ Sent to Admin for approval','success');
+      }
+      document.getElementById('sheet-pedit').classList.remove('active');
+      fillProfile();
+    }catch(e){err.textContent='Could not save: '+(e&&e.message||'unknown error');}
+    finally{profBusy=false;btn.disabled=false;btn.innerHTML=label;}
+  }
+
+  /* ==========================================================================
+     5. QUICK SEARCH  +  CONSUMER MAP
+     ========================================================================== */
+  let colMap=null,quickCol='*',searchMode='list',consumerIdx=null;
+  function detectCols(rows){
+    const keys=[];(rows||[]).slice(0,60).forEach(r=>Object.keys(r).forEach(k=>{if(!k.startsWith('_')&&!keys.includes(k))keys.push(k);}));
+    const f=re=>keys.find(k=>re.test(k));
+    return {keys,
+      consumerNo:f(/^consumer[\s_\-]*(no|num|number|id)\b/i)||f(/consumer.*(no|num|number|id)/i),
+      oldAcc:f(/old.*(acc|account)/i),
+      property:f(/prop.*(no|num|number|id)/i)||f(/propert/i),
+      name:f(/^consumer[\s_\-]*name$/i)||f(/name/i),
+      address:f(/addr/i),
+      phone:f(/(contact|phone|mobile|cell)/i),
+      lat:f(/^(lat|latitude)$/i),lng:f(/^(lng|lon|long|longitude)$/i)};
+  }
+  function colLabel(c){return String(c).replace(/[_\-]+/g,' ').trim();}
+  function quickColumns(){
+    const keys=colMap?colMap.keys:[];
+    let list=Array.isArray(officerCfg.quickCols)?officerCfg.quickCols.filter(Boolean):[];
+    if(!list.length&&colMap)list=[colMap.consumerNo,colMap.oldAcc,colMap.property].filter(Boolean);
+    if(keys.length)list=list.filter(c=>keys.includes(c));
+    return Array.from(new Set(list));
+  }
+  function renderQuickColSelect(){
+    const sel=document.getElementById('s-col');if(!sel)return;
+    const cols=quickColumns();
+    sel.innerHTML=cols.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(colLabel(c))}</option>`).join('')+'<option value="*">All fields</option>';
+    let cur=lsGet('wasaQuickCol_'+((me&&me.phone)||''),null);
+    const valid=v=>v!=null&&[...sel.options].some(o=>o.value===v);
+    if(!valid(cur))cur=valid(officerCfg.defaultCol)?officerCfg.defaultCol:(cols[0]||'*');
+    sel.value=cur;quickCol=cur;paintSearchPlaceholder();
+  }
+  function paintSearchPlaceholder(){
+    const inp=document.getElementById('s-input');if(!inp)return;
+    inp.placeholder=quickCol==='*'?'Search name, phone, CNIC, account...':'Type '+colLabel(quickCol)+'...';
+    inp.inputMode=/no|num|id|acc|prop|phone|cnic/i.test(quickCol)?'numeric':'text';
+  }
+  function onQuickColChange(){
+    quickCol=document.getElementById('s-col').value;
+    lsSet('wasaQuickCol_'+((me&&me.phone)||''),quickCol);
+    paintSearchPlaceholder();runSearch();
+  }
+  function getConsumerIndex(){
+    if(!bulkCache||!colMap||!colMap.consumerNo)return new Map();
+    if(consumerIdx&&consumerIdx.src===bulkCache)return consumerIdx.map;
+    const m=new Map();bulkCache.forEach(r=>{const k=String(r[colMap.consumerNo]||'').trim();if(k&&!m.has(k))m.set(k,r);});
+    consumerIdx={src:bulkCache,map:m};return m;
+  }
+  function rowNo(r){return colMap&&colMap.consumerNo?String(r[colMap.consumerNo]||'').trim():'';}
+
+  function setSearchMode(m){
+    searchMode=m;
+    document.getElementById('seg-list').classList.toggle('on',m==='list');
+    document.getElementById('seg-map').classList.toggle('on',m==='map');
+    document.getElementById('s-list-wrap').style.display=m==='list'?'block':'none';
+    document.getElementById('s-map-wrap').style.display=m==='map'?'block':'none';
+    if(m==='map'){
+      if(!initLeaflet())return;
+      setTimeout(()=>{try{leafMap.invalidateSize();}catch(_){}},60);
+      if(!bulkCache)loadBulkCache().then(()=>{renderQuickColSelect();runSearch();});else runSearch();
+    }else runSearch();
+  }
+
+  /* ---- Leaflet ---- */
+  let leafMap=null,mapLayer=null,meLayer=null,mapToken=0,mapItems=[];
+  const entriesByConsumer=new Map(),fetchedConsumers=new Set();let allEntriesLoaded=false,allEntriesList=[];
+  function initLeaflet(){
+    if(leafMap)return true;
+    if(typeof L==='undefined'){toast('Map library could not load. Connect to the internet once and reopen the app.','warning');return false;}
+    leafMap=L.map('s-map',{zoomControl:true}).setView([31.12,74.45],12);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(leafMap);
+    mapLayer=L.layerGroup().addTo(leafMap);
+    return true;
+  }
+  function entryLatLng(a){
+    const g=a&&a.gpsCoords;if(!g)return null;
+    const lat=Number(g.lat),lng=Number(g.lng);
+    if(!isFinite(lat)||!isFinite(lng)||(lat===0&&lng===0))return null;
+    return {lat,lng};
+  }
+  function entryConsumerNo(a){
+    if(a.consumerNo)return String(a.consumerNo).trim();
+    const v=a.values||{};const k=Object.keys(v).find(x=>CONSUMER_LABEL_RE.test(x));
+    return k?String(v[k]||'').trim():'';
+  }
+  function indexEntries(list){
+    list.forEach(a=>{
+      const no=entryConsumerNo(a);if(!no)return;
+      const arr=entriesByConsumer.get(no)||[];
+      if(!arr.some(x=>x._id===a._id))arr.push(a);
+      entriesByConsumer.set(no,arr);
+    });
+  }
+  async function fetchEntriesFor(nos){
+    if(!navigator.onLine)return false;
+    const need=Array.from(new Set(nos.filter(n=>n&&!fetchedConsumers.has(n)))).slice(0,30);
+    let i=0;
+    async function w(){while(i<need.length){const n=need[i++];try{
+      const snap=await withTimeout(db.collection('wasaActivities').where('consumerNo','==',n).limit(20).get(),10000);
+      indexEntries(snap.docs.map(d=>({_id:d.id,...d.data()})));fetchedConsumers.add(n);
+    }catch(_){}}}
+    await Promise.all([w(),w(),w(),w()]);
+    return true;
+  }
+  function latestGpsEntry(no){
+    const arr=(entriesByConsumer.get(no)||[]).filter(entryLatLng).sort((a,b)=>entryMs(b)-entryMs(a));
+    return arr[0]||null;
+  }
+  function pinIcon(color){return L.divIcon({className:'wpin',html:`<svg width="30" height="38" viewBox="0 0 30 38"><path d="M15 0C6.7 0 0 6.6 0 14.8 0 25.6 15 38 15 38s15-12.4 15-23.2C30 6.6 23.3 0 15 0z" fill="${color}" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14.5" r="5.5" fill="#fff"/></svg>`,iconSize:[30,38],iconAnchor:[15,38],popupAnchor:[0,-34]});}
+  function buildItemFromRow(r,entry){
+    const no=rowNo(r);
+    const ll=entry?entryLatLng(entry):null;
+    let lat=ll?ll.lat:null,lng=ll?ll.lng:null;
+    if(lat==null&&colMap&&colMap.lat&&colMap.lng){const a=Number(r[colMap.lat]),b=Number(r[colMap.lng]);if(isFinite(a)&&isFinite(b)&&a&&b){lat=a;lng=b;}}
+    return {no,row:r,entry,lat,lng,
+      name:(colMap&&colMap.name&&r[colMap.name])||'',
+      address:(colMap&&colMap.address&&r[colMap.address])||'',
+      phone:(colMap&&colMap.phone&&r[colMap.phone])||''};
+  }
+  function buildItemFromEntry(a){
+    const no=entryConsumerNo(a);const r=no?getConsumerIndex().get(no):null;
+    const it=buildItemFromRow(r||{},a);
+    it.no=no;it.row=r||null;
+    if(!r){it.name=no?'Consumer '+no:'Entry';it.address='';it.phone='';}
+    return it;
+  }
+  function allKnownEntries(){
+    const seen=new Set(),out=[];
+    [].concat(myEntriesAll(),allEntriesList).forEach(a=>{if(a._id&&seen.has(a._id))return;if(a._id)seen.add(a._id);out.push(a);});
+    return out;
+  }
+  async function renderMapResults(res,hasQuery){
+    if(!initLeaflet())return;
+    const token=++mapToken;
+    const info=document.getElementById('s-info'),listEl=document.getElementById('s-map-list');
+    mapLayer.clearLayers();mapItems=[];closeMapCard();
+    let items=[];
+    if(!hasQuery&&!activeFilters.length){
+      /* nothing typed: show every entry with a saved location that this phone knows about */
+      indexEntries(allKnownEntries());
+      const byNo=new Map(),loose=[];
+      allKnownEntries().filter(entryLatLng).sort((a,b)=>entryMs(b)-entryMs(a)).forEach(a=>{const no=entryConsumerNo(a);if(no){if(!byNo.has(no))byNo.set(no,a);}else loose.push(a);});
+      byNo.forEach(a=>items.push(buildItemFromEntry(a)));
+      loose.slice(0,300).forEach(a=>items.push(buildItemFromEntry(a)));
+      info.innerHTML=`<strong>${items.length.toLocaleString()}</strong> mapped location${items.length===1?'':'s'} ${allEntriesLoaded?'(all officers)':'(your entries)'} — type above to find a consumer`;
+    }else{
+      const cap=res.slice(0,30);
+      info.textContent='Finding locations...';
+      await fetchEntriesFor(cap.map(rowNo));
+      if(token!==mapToken)return;
+      items=cap.map(r=>buildItemFromRow(r,latestGpsEntry(rowNo(r))));
+      const withLoc=items.filter(x=>x.lat!=null).length;
+      info.innerHTML=`<strong>${res.length.toLocaleString()}</strong> consumer${res.length===1?'':'s'} found${res.length>30?' (showing first 30 — type more to narrow)':''} • <strong>${withLoc}</strong> on the map`+(navigator.onLine?'':' • offline: only saved locations');
+    }
+    mapItems=items;
+    const bounds=[];
+    items.forEach((it,i)=>{
+      if(it.lat==null)return;
+      const mk=L.marker([it.lat,it.lng],{icon:pinIcon(it.entry&&it.entry.officerPhone===(me&&me.phone)?'#1A56DB':'#16A34A')}).addTo(mapLayer);
+      mk.on('click',()=>openMapCard(i));
+      it._marker=mk;bounds.push([it.lat,it.lng]);
+    });
+    if(bounds.length===1)leafMap.setView(bounds[0],17);else if(bounds.length)leafMap.fitBounds(bounds,{padding:[30,30],maxZoom:17});
+    listEl.innerHTML=items.length?items.slice(0,60).map((it,i)=>`<div class="result-card" style="cursor:pointer;" onclick="openMapCard(${i},true)"><div class="rc-title">${escapeHtml(it.name||'Unknown')}</div><div class="rc-meta">#${escapeHtml(it.no||'-')}${it.phone?' • 📞 '+escapeHtml(String(it.phone)):''}</div><div class="rc-meta" style="margin-top:2px;">${it.lat!=null?'📍 On map — tap to see':'⚪ No location recorded yet'}${it.address?' • '+escapeHtml(String(it.address).slice(0,60)):''}</div></div>`).join(''):`<div class="empty"><div class="em">🗺️</div><h4>${hasQuery?'No matching consumer':'No mapped locations yet'}</h4><p>${hasQuery?'Try another number or column.':'Locations appear here after entries with GPS are saved.'}</p></div>`;
+    const btn=document.getElementById('s-load-all');
+    if(btn)btn.style.display=(officerCfg.mapAllEnabled!==false&&!allEntriesLoaded&&!hasQuery)?'inline-flex':'none';
+  }
+  function closeMapCard(){const c=document.getElementById('s-map-card');if(c){c.style.display='none';c.innerHTML='';}}
+  function openMapCard(i,fromList){
+    const it=mapItems[i];if(!it)return;
+    const c=document.getElementById('s-map-card');
+    const e=it.entry;const ms=e?entryMs(e):0;
+    const rows=[];
+    if(it.no)rows.push(['Consumer No',it.no]);
+    if(it.phone)rows.push(['Contact',it.phone]);
+    if(it.address)rows.push(['Address',it.address]);
+    if(e){rows.push(['Last visit',ms?new Date(ms).toLocaleString():'-']);rows.push(['Form',e.activityType||'-']);if(e.officerName)rows.push(['Officer',e.officerName]);if(e.status&&e.status!=='submitted')rows.push(['Status',e.status]);}
+    c.innerHTML=`<div class="mc-hd"><div><div class="mc-title">${escapeHtml(it.name||'Consumer')}</div></div><button class="btn btn-outline btn-xs" onclick="closeMapCard()">✕</button></div>${rows.map(r=>`<div class="detail-row"><span class="k">${escapeHtml(r[0])}</span><span class="v">${escapeHtml(String(r[1]))}</span></div>`).join('')}<div class="mc-actions">${it.lat!=null?`<button class="btn btn-primary btn-sm" onclick="openDirections(${it.lat},${it.lng})"><i class="fa-solid fa-diamond-turn-right"></i> Get Directions</button>`:'<span style="font-size:.75rem;color:var(--w600);font-weight:700;">⚠ No location recorded for this consumer yet</span>'}${it.row?`<button class="btn btn-outline btn-sm" onclick="mapOpenFull(${i})"><i class="fa-solid fa-list"></i> All details</button>`:''}</div>`;
+    c.style.display='block';
+    if(it.lat!=null&&leafMap){leafMap.setView([it.lat,it.lng],Math.max(leafMap.getZoom(),17));}
+    if(fromList){try{document.getElementById('s-map').scrollIntoView({behavior:'smooth',block:'start'});}catch(_){}}
+  }
+  function mapOpenFull(i){
+    const it=mapItems[i];if(!it||!it.row)return;
+    window._lastRes=[it.row];openDetail(0);
+  }
+  function openDirections(lat,lng){
+    const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(lat+','+lng)+'&travelmode=driving';
+    window.open(url,'_blank','noopener');
+  }
+  function locateMe(){
+    if(!navigator.geolocation)return toast('GPS not supported','warning');
+    if(!initLeaflet())return;
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const c=pos.coords;
+      if(meLayer)leafMap.removeLayer(meLayer);
+      meLayer=L.layerGroup([L.circle([c.latitude,c.longitude],{radius:c.accuracy||30,color:'#2563EB',weight:1,fillOpacity:.12}),L.circleMarker([c.latitude,c.longitude],{radius:8,color:'#fff',weight:3,fillColor:'#2563EB',fillOpacity:1})]).addTo(leafMap);
+      leafMap.setView([c.latitude,c.longitude],16);
+    },err=>toast(err&&err.code===1?'Location permission is blocked. Allow location in the browser/app settings.':'Could not get your location','warning'),{enableHighAccuracy:true,timeout:20000,maximumAge:30000});
+  }
+  async function loadAllEntries(){
+    if(!navigator.onLine)return toast('Internet needed','warning');
+    const lim=Math.min(3000,Math.max(100,Number(officerCfg.mapAllLimit)||1000));
+    if(!confirm('Load the latest '+lim+' entries of all officers onto the map?\n(Uses some mobile data.)'))return;
+    const btn=document.getElementById('s-load-all');if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Loading...';}
+    try{
+      const snap=await withTimeout(db.collection('wasaActivities').orderBy('timestamp','desc').limit(lim).get(),30000);
+      allEntriesList=snap.docs.map(d=>({_id:d.id,...d.data()}));allEntriesLoaded=true;indexEntries(allEntriesList);
+      toast('✅ '+allEntriesList.length+' entries loaded','success');runSearch();
+    }catch(e){toast('Could not load: '+e.message,'error');}
+    finally{if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-users"></i> Show all officers';}}
+  }
+  /* "Get Directions" from the normal list detail sheet */
+  async function detailDirections(){
+    if(!detailRecord)return;
+    const no=rowNo(detailRecord);if(!no)return toast('No consumer number on this record','warning');
+    const b=document.getElementById('dt-dir');if(b){b.disabled=true;}
+    await fetchEntriesFor([no]);
+    if(b)b.disabled=false;
+    const it=buildItemFromRow(detailRecord,latestGpsEntry(no));
+    if(it.lat==null)return toast('No location has been recorded for this consumer yet','warning');
+    openDirections(it.lat,it.lng);
+  }
+
+  function registerSW(){try{if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(_){}}
+</script>
+  <div id="adm-ov" onclick="if(event.target===this)actClose()"><div class="sheet"><div style="display:flex;justify-content:space-between;align-items:center;"><h3>📄 Entry details</h3><button class="btn btn-outline btn-xs" onclick="actClose()">✕</button></div><div id="adm-body"></div></div></div>
+</body>
+</html>
